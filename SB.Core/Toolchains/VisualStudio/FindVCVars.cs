@@ -34,7 +34,7 @@ namespace SB.Core
         {
             Console.WriteLine("Write Once");
             var matcher = new Matcher();
-            matcher.AddIncludePatterns(new[] { "./**/VC/Auxiliary/Build/vcvars64.bat" });
+            matcher.AddIncludePatterns(new[] { "./**/VC/Auxiliary/Build/vcvarsall.bat" });
             foreach (var Disk in Windows.EnumLogicalDrives())
             {
                 var VersionPostfix = (version == Version.V2022) ? "/2022" : "";
@@ -42,26 +42,38 @@ namespace SB.Core
                 IEnumerable<string> matchingFiles = matcher.GetResultsInFullPath(searchDirectory);
                 foreach (string file in matchingFiles)
                 {
-                    VCVars64Bat = file;
+                    VCVarsAllBat = file;
+                    VCVars64Bat = file.Replace("vcvarsall", "vcvars64");
                 }
             }
         }
 
         private void DumpVCVars()
         {
-            var oldEnv = Path.Combine(Path.GetTempPath(), "vcvars_prev.txt");
-            var newEnv = Path.Combine(Path.GetTempPath(), "vcvars_post.txt");
+            var oldEnvPath = Path.Combine(Path.GetTempPath(), "vcvars_prev.txt");
+            var newEnvPath = Path.Combine(Path.GetTempPath(), "vcvars_post.txt");
             Process cmd = new Process();
             cmd.StartInfo.FileName = "cmd.exe";
             cmd.StartInfo.RedirectStandardInput = false;
             cmd.StartInfo.CreateNoWindow = true;
             cmd.StartInfo.UseShellExecute = false;
-            cmd.StartInfo.Arguments = $"/c set > \"{oldEnv}\" && \"{VCVars64Bat}\" && set > \"{newEnv}\"";
+            cmd.StartInfo.Arguments = $"/c set > \"{oldEnvPath}\" && \"{VCVars64Bat}\" && set > \"{newEnvPath}\"";
             cmd.Start();
             cmd.WaitForExit();
+
+            var oldEnv = EnvReader.Load(oldEnvPath);
+            var newEnv = EnvReader.Load(newEnvPath);
+            foreach (var oldVar in oldEnv)
+            {
+                if (newEnv.ContainsKey(oldVar.Key) && newEnv[oldVar.Key] == oldEnv[oldVar.Key])
+                    newEnv.Remove(oldVar.Key);
+            }
+            VCEnvVariables = newEnv;
         }
 
         public readonly Version version;
+        public string? VCVarsAllBat { get; private set; }
         public string? VCVars64Bat { get; private set; }
+        public Dictionary<string, string?> VCEnvVariables { get; private set; }
     }
 }
