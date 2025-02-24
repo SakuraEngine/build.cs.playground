@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace SB.Core
@@ -7,15 +9,11 @@ namespace SB.Core
         [DllImport("kernel32", ExactSpelling = true)]
         public static extern uint GetLogicalDriveStringsW(uint nBufferLength, IntPtr lpBuffer);
 
-        public static unsafe List<string> EnumLogicalDrives()
+        public static string[] EnumLogicalDrives()
         {
-            var Disks = new List<string>();
-            var strLen = GetLogicalDriveStringsW(0, IntPtr.Zero);
-            var DisksBuffer = new char[strLen];
-            fixed (char* ptr = DisksBuffer)
-                GetLogicalDriveStringsW(strLen, (IntPtr)ptr);
-            Disks = new string(DisksBuffer).Replace(":\\", "").Split('\0').ToList();
-            Disks.RemoveAll(x => string.IsNullOrEmpty(x));
+            var Disks = Environment.GetLogicalDrives();
+            for (int i = 0; i < Disks.Length; i++)
+                Disks[i] = Disks[i].Replace(":\\", "");
             return Disks;
         }
     }

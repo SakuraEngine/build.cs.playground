@@ -1,6 +1,4 @@
-﻿using SB.Core;
-
-namespace SB.Test
+﻿namespace SB.Test
 {
     [TestClass]
     public sealed class Test1
@@ -11,7 +9,7 @@ namespace SB.Test
             var drives = SB.Core.Windows.EnumLogicalDrives();
             foreach (var drive in drives)
             {
-                Path.Exists($"{drive}:/");
+                Assert.IsTrue(Path.Exists($"{drive}:/"));
             }
         }        
         
@@ -21,8 +19,16 @@ namespace SB.Test
             var vcvars = SB.Core.VisualStudio.FindVCVars();
             foreach (var vcvar in vcvars)
             {
-                Path.Exists(vcvar);
+                Assert.IsTrue(Path.Exists(vcvar));
             }
+        }
+
+        [TestMethod]
+        public void TestEnvironmentGetSet()
+        {
+            // System.Environment.GetEnvironmentVariables();
+            System.Environment.SetEnvironmentVariable("Hello", "World");
+            Assert.AreEqual(System.Environment.GetEnvironmentVariable("Hello"), "World");
         }
     }
 }
