@@ -1,4 +1,7 @@
-﻿namespace SB.Test
+﻿using System.Diagnostics;
+using SB.Core;
+
+namespace SB.Test
 {
     [TestClass]
     public sealed class Test1
@@ -16,11 +19,9 @@
         [TestMethod]
         public void TestFindVCVars()
         {
-            var vcvars = SB.Core.VisualStudio.FindVCVars();
-            foreach (var vcvar in vcvars)
-            {
-                Assert.IsTrue(Path.Exists(vcvar));
-            }
+            VisualStudio vs = new VisualStudio(VisualStudio.Version.V2022);
+            vs.Initialize().Wait(10000);
+            Assert.IsTrue(Path.Exists(vs.VCVars64Bat));
         }
 
         [TestMethod]
@@ -32,3 +33,4 @@
         }
     }
 }
+
