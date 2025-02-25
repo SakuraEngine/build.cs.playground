@@ -3,11 +3,6 @@ using System.Diagnostics;
 
 namespace SB.Core
 {
-    public interface IToolchain
-    {
-        public Task<bool> Initialize();
-    }
-
     public partial class VisualStudio : IToolchain
     {
         public enum Version
@@ -28,6 +23,21 @@ namespace SB.Core
                 DumpVCVars();
                 return true;
             });
+        }
+
+        public ICompiler Compiler()
+        {
+            return null;
+        }
+
+        public IArchiver Archiver()
+        {
+            return null;
+        }
+
+        public ILinker Linker()
+        {
+            return null;
         }
 
         private void FindVCVars(Version version)

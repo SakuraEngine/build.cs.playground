@@ -31,5 +31,18 @@ namespace SB.Test
             System.Environment.SetEnvironmentVariable("Hello", "World");
             Assert.AreEqual(System.Environment.GetEnvironmentVariable("Hello"), "World");
         }
+
+        [TestMethod]
+        public void TestCompileArgDriver()
+        {
+            var TestFunction = (string Name, object Value, string Result) => {
+                var driver = new MSVCArgumentDriver() as IArgumentDriver;
+                object[] args = { Value };
+                driver.Semantics.Add(Name, args);
+                Assert.AreEqual(driver.CalculateArguments()[0], Result);
+            };
+            TestFunction("Exception", true, "/EHsc");
+            TestFunction("Exception", false, "/EHsc-");
+        }
     }
 }
