@@ -42,7 +42,7 @@ namespace SB.Core
 
         [Argument] public string Source(string path) => Path.IsPathFullyQualified(path) ? $"{path}" : throw new ArgumentException($"Source value {path} is not an existed absolute path!");
 
-        public Dictionary<string, object?[]?> Semantics { get; } = new Dictionary<string, object?[]?>();
+        public Dictionary<string, object?[]?> Arguments { get; } = new Dictionary<string, object?[]?>();
 
         public HashSet<string> RawArguments { get; } = new HashSet<string> { "/c", "/nologo", "/cgthreads4", "/FC" };
         // /c: dont link while compiling, https://learn.microsoft.com/zh-cn/cpp/build/reference/c-compile-without-linking?view=msvc-170

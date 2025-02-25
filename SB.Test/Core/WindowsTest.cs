@@ -38,11 +38,12 @@ namespace SB.Test
             var TestFunction = (string Name, object Value, string Result) => {
                 var driver = new MSVCArgumentDriver() as IArgumentDriver;
                 object[] args = { Value };
-                driver.Semantics.Add(Name, args);
+                driver.Arguments.Add(Name, args);
 
                 var ArgumentsString = String.Join(" ", driver.CalculateArguments());
 
-                Result += " ";
+                if (Result != "")
+                    Result += " ";
                 Result += String.Join(" ", driver.RawArguments);
 
                 Assert.AreEqual(ArgumentsString, Result);
@@ -106,6 +107,25 @@ namespace SB.Test
         
             TestFunction("RTTI", true, "/GR");
             TestFunction("RTTI", false, "/GR-");
+
+            /*
+            var driver = new MSVCArgumentDriver() as IArgumentDriver;
+            driver.AddArgument("CppVersion", 20);
+            driver.AddArgument("Exception", true);
+            driver.AddArgument("RuntimeLibrary", "MD");
+            driver.AddArgument("Arch", Architecture.X64);
+            driver.AddArgument("SIMD", SIMDArchitecture.AVX);
+            driver.AddArgument("PDBMode", PDBMode.Embed);
+            driver.AddArgument("OptimizationLevel", OptimizationLevel.O0);
+            driver.AddArgument("FpModel", FpModel.Fast);
+            driver.AddArgument("Defines", new Dictionary<string, string?> {
+                { "A", null }, { "B", "1" }, { "C", "B" }
+            });
+            driver.AddArgument("IncludeDirs", new string[] { "C:/ " });
+            driver.AddArgument("RTTI", false);
+            driver.AddArgument("Source", "C:/");
+            var compile_commands = driver.CompileCommands("C:/");
+            */
         }
     }
 }

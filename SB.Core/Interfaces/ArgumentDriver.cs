@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
+using System.Xml.Linq;
 
 namespace SB.Core
 {
@@ -60,31 +62,26 @@ namespace SB.Core
 
     public interface IArgumentDriver
     {
-        public void AddArgument(string Arg)
-        {
-            RawArguments.Add(Arg);
-        }
-
         public List<string> CalculateArguments()
         {
-            List<string> Arguments = new List<string>();
-            Arguments.Capacity = Semantics.Count + RawArguments.Count;
+            List<string> Args = new List<string>();
+            Args.Capacity = Arguments.Count + RawArguments.Count;
             var DriverType = GetType();
             foreach (var Method in DriverType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
             {
                 if (Attribute.GetCustomAttribute(Method, typeof(Argument)) is not null)
                 {
-                    if (Semantics.TryGetValue(Method.Name, out var SemanticValue))
+                    if (Arguments.TryGetValue(Method.Name, out var ArgumentValue))
                     {
                         try
                         {
-                            var Result = Method.Invoke(this, SemanticValue);
+                            var Result = Method.Invoke(this, ArgumentValue);
                             if (Result is string)
-                                Arguments.Add(Result as string);
+                                Args.Add(Result as string);
                             if (Result is string[])
-                                Arguments = Arguments.Union(Result as string[]).ToList();
+                                Args = Args.Union(Result as string[]).ToList();
                             if (Result is List<string>)
-                                Arguments = Arguments.Union(Result as List<string>).ToList();
+                                Args = Args.Union(Result as List<string>).ToList();
                         }
                         catch (ArgumentException e)
                         {
@@ -93,11 +90,42 @@ namespace SB.Core
                     }
                 }
             }
-            Arguments = Arguments.Union(RawArguments).ToList();
-            return Arguments;
+            Args = Args.Union(RawArguments).ToList();
+            Args.Remove("");
+            return Args;
         }
 
-        public Dictionary<string, object?[]?> Semantics { get; }
+        public string CompileCommands(string directory)
+        {
+            dynamic compile_commands = new 
+            {
+                directory = directory,
+                arguments = CalculateArguments(),
+                file = Arguments["Source"]
+            };
+            JsonSerializerOptions opts = new System.Text.Json.JsonSerializerOptions();
+            opts.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+            return JsonSerializer.Serialize(compile_commands, opts);
+        }
+
+        public IArgumentDriver AddArgument(string key, object value)
+        {
+            object[] args = { value };
+            Arguments.Add(key, args);
+            return this;
+        }
+
+        public IArgumentDriver AddArgument(string key, object?[] value)
+        {
+            Arguments.Add(key, value);
+            return this;
+        }
+        public void AddRawArgument(string Arg)
+        {
+            RawArguments.Add(Arg);
+        }
+
+        public Dictionary<string, object?[]?> Arguments { get; }
         public HashSet<string> RawArguments { get; }
     }
 }
