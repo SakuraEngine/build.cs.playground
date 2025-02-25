@@ -48,6 +48,7 @@ namespace SB.Test
 
                 Assert.AreEqual(ArgumentsString, Result);
             };
+
             TestFunction("Exception", true, "/EHsc");
             TestFunction("Exception", false, "/EHsc-");
             TestFunction("RuntimeLibrary", "MT", "/MT");
@@ -68,7 +69,7 @@ namespace SB.Test
             TestCppVersion("latest");
 
             TestFunction("Arch", Architecture.X86, ""); // for msvc arch setting is a null option
-         
+
             TestFunction("SIMD", SIMDArchitecture.SSE2, "/arch:SSE2"); 
             TestFunction("SIMD", SIMDArchitecture.SSE4_2, "/arch:SSE4.2"); 
             TestFunction("SIMD", SIMDArchitecture.AVX, "/arch:AVX"); 
@@ -78,9 +79,7 @@ namespace SB.Test
             TestFunction("PDBMode", PDBMode.Standalone, "/Zi");
             TestFunction("PDBMode", PDBMode.Embed, "/Z7");
             TestFunction("PDBMode", PDBMode.Disable, "");
-            TestFunction("PDBMode", true, "/Zi");
-            TestFunction("PDBMode", false, "");
-
+            
             TestFunction("PDB", "C:/", "/FdC:/");
 
             TestFunction("WarningAsError", true, "/WX");
@@ -101,16 +100,16 @@ namespace SB.Test
             TestFunction("FpModel", FpModel.Fast, "/fp:fast");
             TestFunction("FpModel", FpModel.Strict, "/fp:strict");
             TestFunction("FpModel", FpModel.Precise, "/fp:precise");
-            
+
             TestFunction("Defines", new Dictionary<string, string?> { { "A", null }, { "B", "2" } }, "/DA /DB=2");
             TestFunction("IncludeDirs", new string[] { "C:/", "C:/" }, "/IC:/"); // Test Union
-        
+
             TestFunction("RTTI", true, "/GR");
             TestFunction("RTTI", false, "/GR-");
 
             /*
             var driver = new MSVCArgumentDriver() as IArgumentDriver;
-            driver.AddArgument("CppVersion", 20);
+            driver.AddArgument("CppVersion", "20");
             driver.AddArgument("Exception", true);
             driver.AddArgument("RuntimeLibrary", "MD");
             driver.AddArgument("Arch", Architecture.X64);

@@ -73,20 +73,13 @@ namespace SB.Core
                 {
                     if (Arguments.TryGetValue(Method.Name, out var ArgumentValue))
                     {
-                        try
-                        {
-                            var Result = Method.Invoke(this, ArgumentValue);
-                            if (Result is string)
-                                Args.Add(Result as string);
-                            if (Result is string[])
-                                Args = Args.Union(Result as string[]).ToList();
-                            if (Result is List<string>)
-                                Args = Args.Union(Result as List<string>).ToList();
-                        }
-                        catch (ArgumentException e)
-                        {
-                            continue;
-                        }
+                        var Result = Method.Invoke(this, ArgumentValue);
+                        if (Result is string)
+                            Args.Add(Result as string);
+                        if (Result is string[])
+                            Args = Args.Union(Result as string[]).ToList();
+                        if (Result is List<string>)
+                            Args = Args.Union(Result as List<string>).ToList();
                     }
                 }
             }
