@@ -28,7 +28,7 @@ namespace SB.Core
         [Argument] public string OptimizationLevel(Core.OptimizationLevel opt) => $"/{opt}".Replace("/O3", "/O2").Replace("/O0", "/Od");
 
         // for clang it's -ffp-model=[precise|fast|strict]
-        [Argument] public string FpModel(FpModel v) => $"/fp:{v}".ToLower();
+        [Argument] public string FpModel(FpModel v) => $"/fp:{v}".ToLowerInvariant();
 
         [Argument] public string[] Defines(Dictionary<string, string?> defines) => defines.Select(kvp => kvp.Value is null ? $"/D{kvp.Key}" : $"/D{kvp.Key}={kvp.Value}").ToArray();
 
