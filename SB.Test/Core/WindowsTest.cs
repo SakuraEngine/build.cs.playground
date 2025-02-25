@@ -39,7 +39,13 @@ namespace SB.Test
                 var driver = new MSVCArgumentDriver() as IArgumentDriver;
                 object[] args = { Value };
                 driver.Semantics.Add(Name, args);
-                Assert.AreEqual(driver.CalculateArguments()[0], Result);
+
+                var ArgumentsString = String.Join(" ", driver.CalculateArguments());
+
+                Result += " ";
+                Result += String.Join(" ", driver.RawArguments);
+
+                Assert.AreEqual(ArgumentsString, Result);
             };
             TestFunction("Exception", true, "/EHsc");
             TestFunction("Exception", false, "/EHsc-");
@@ -61,7 +67,45 @@ namespace SB.Test
             TestCppVersion("latest");
 
             TestFunction("Arch", Architecture.X86, ""); // for msvc arch setting is a null option
+         
+            TestFunction("SIMD", SIMDArchitecture.SSE2, "/arch:SSE2"); 
+            TestFunction("SIMD", SIMDArchitecture.SSE4_2, "/arch:SSE4.2"); 
+            TestFunction("SIMD", SIMDArchitecture.AVX, "/arch:AVX"); 
+            TestFunction("SIMD", SIMDArchitecture.AVX512, "/arch:AVX512"); 
+            TestFunction("SIMD", SIMDArchitecture.AVX10_1, "/arch:AVX10.1");
 
+            TestFunction("PDBMode", PDBMode.Standalone, "/Zi");
+            TestFunction("PDBMode", PDBMode.Embed, "/Z7");
+            TestFunction("PDBMode", PDBMode.Disable, "");
+            TestFunction("PDBMode", true, "/Zi");
+            TestFunction("PDBMode", false, "");
+
+            TestFunction("PDB", "C:/", "/FdC:/");
+
+            TestFunction("WarningAsError", true, "/WX");
+            TestFunction("WarningAsError", false, "");
+
+            TestFunction("WarningLevel", MSVCWarningLevel.W0, "/W0");
+            TestFunction("WarningLevel", MSVCWarningLevel.W1, "/W1");
+            TestFunction("WarningLevel", MSVCWarningLevel.W2, "/W2");
+            TestFunction("WarningLevel", MSVCWarningLevel.W3, "/W3");
+            TestFunction("WarningLevel", MSVCWarningLevel.W4, "/W4");
+            TestFunction("WarningLevel", MSVCWarningLevel.Wall, "/Wall");
+
+            TestFunction("OptimizationLevel", OptimizationLevel.O0, "/Od");
+            TestFunction("OptimizationLevel", OptimizationLevel.O1, "/O1");
+            TestFunction("OptimizationLevel", OptimizationLevel.O2, "/O2");
+            TestFunction("OptimizationLevel", OptimizationLevel.O3, "/O2");
+
+            TestFunction("FpModel", FpModel.Fast, "/fp:fast");
+            TestFunction("FpModel", FpModel.Strict, "/fp:strict");
+            TestFunction("FpModel", FpModel.Precise, "/fp:precise");
+            
+            TestFunction("Defines", new Dictionary<string, string?> { { "A", null }, { "B", "2" } }, "/DA /DB=2");
+            TestFunction("IncludeDirs", new string[] { "C:/", "C:/" }, "/IC:/"); // Test Union
+        
+            TestFunction("RTTI", true, "/GR");
+            TestFunction("RTTI", false, "/GR-");
         }
     }
 }
