@@ -69,18 +69,15 @@ namespace SB.Core
             var DriverType = GetType();
             foreach (var Method in DriverType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
             {
-                if (Attribute.GetCustomAttribute(Method, typeof(Argument)) is not null)
+                if (Arguments.TryGetValue(Method.Name, out var ArgumentValue))
                 {
-                    if (Arguments.TryGetValue(Method.Name, out var ArgumentValue))
-                    {
-                        var Result = Method.Invoke(this, ArgumentValue);
-                        if (Result is string)
-                            Args.Add(Result as string);
-                        if (Result is string[])
-                            Args = Args.Union(Result as string[]).ToList();
-                        if (Result is List<string>)
-                            Args = Args.Union(Result as List<string>).ToList();
-                    }
+                    var Result = Method.Invoke(this, ArgumentValue);
+                    if (Result is string)
+                        Args.Add(Result as string);
+                    if (Result is string[])
+                        Args = Args.Union(Result as string[]).ToList();
+                    if (Result is List<string>)
+                        Args = Args.Union(Result as List<string>).ToList();
                 }
             }
             Args = Args.Union(RawArguments).ToList();
