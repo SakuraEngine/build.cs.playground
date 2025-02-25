@@ -10,6 +10,13 @@ namespace SB.Core
 
     };
 
+    public enum Architecture
+    {
+        X86,
+        X64,
+        ARM64
+    };
+
     public interface IArgumentDriver
     {
         public void AddArgument(string Arg)
@@ -28,7 +35,14 @@ namespace SB.Core
                 {
                     if (Semantics.TryGetValue(Method.Name, out var SemanticValue))
                     {
-                        Arguments.Add(Method.Invoke(this, SemanticValue) as string);
+                        try
+                        {
+                            Arguments.Add(Method.Invoke(this, SemanticValue) as string);
+                        }
+                        catch (ArgumentException e)
+                        {
+                            continue;
+                        }
                     }
                 }
             }

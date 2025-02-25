@@ -10,17 +10,19 @@ namespace SB.Core
             V2022
         };
 
-        public VisualStudio(Version version = Version.V2022)
+        public VisualStudio(Version version = Version.V2022, Architecture HostArch = Architecture.X64, Architecture TargetArch = Architecture.X64)
         {
             this.version = version;
+            this.HostArch = HostArch;
+            this.TargetArch = TargetArch;
         }
 
         public async Task<bool> Initialize()
         {
             return await Task.Run<bool>(() =>
             {
-                FindVCVars(version);
-                DumpVCVars();
+                FindVCVars();
+                RunVCVars();
                 return true;
             });
         }
@@ -40,7 +42,7 @@ namespace SB.Core
             return null;
         }
 
-        private void FindVCVars(Version version)
+        private void FindVCVars()
         {
             Console.WriteLine("Write Once");
             var matcher = new Matcher();
@@ -58,16 +60,19 @@ namespace SB.Core
             }
         }
 
-        private void DumpVCVars()
+        static readonly Dictionary<Architecture, string> archStringMap = new Dictionary<Architecture, string> { { Architecture.X86, "x86" }, { Architecture.X64, "x64" }, { Architecture.ARM64, "arm64" } };
+        private void RunVCVars()
         {
-            var oldEnvPath = Path.Combine(Path.GetTempPath(), "vcvars_prev.txt");
-            var newEnvPath = Path.Combine(Path.GetTempPath(), "vcvars_post.txt");
+            string ArchString = (TargetArch == HostArch) ? archStringMap[TargetArch] : $"{archStringMap[HostArch]}_{archStringMap[TargetArch]}";
+            var oldEnvPath = Path.Combine(Path.GetTempPath(), $"vcvars_{version}_prev_{HostArch}_{TargetArch}.txt");
+            var newEnvPath = Path.Combine(Path.GetTempPath(), $"vcvars_{version}_post_{HostArch}_{TargetArch}.txt");
+
             Process cmd = new Process();
             cmd.StartInfo.FileName = "cmd.exe";
             cmd.StartInfo.RedirectStandardInput = false;
             cmd.StartInfo.CreateNoWindow = true;
             cmd.StartInfo.UseShellExecute = false;
-            cmd.StartInfo.Arguments = $"/c set > \"{oldEnvPath}\" && \"{VCVars64Bat}\" && set > \"{newEnvPath}\"";
+            cmd.StartInfo.Arguments = $"/c set > \"{oldEnvPath}\" && \"{VCVarsAllBat}\" {ArchString} && set > \"{newEnvPath}\"";
             cmd.Start();
             cmd.WaitForExit();
 
@@ -82,6 +87,9 @@ namespace SB.Core
         }
 
         public readonly Version version;
+        public readonly Architecture HostArch;
+        public readonly Architecture TargetArch;
+
         public string? VCVarsAllBat { get; private set; }
         public string? VCVars64Bat { get; private set; }
         public Dictionary<string, string?> VCEnvVariables { get; private set; }

@@ -43,6 +43,25 @@ namespace SB.Test
             };
             TestFunction("Exception", true, "/EHsc");
             TestFunction("Exception", false, "/EHsc-");
+            TestFunction("RuntimeLibrary", "MT", "/MT");
+            TestFunction("RuntimeLibrary", "MTd", "/MTd");
+            TestFunction("RuntimeLibrary", "MD", "/MD");
+            TestFunction("RuntimeLibrary", "MDd", "/MDd");
+
+            var TestCppVersion = (string version) =>
+            {
+                TestFunction("CppVersion", version, $"/std:c++{version}");
+                TestFunction("CppVersion", $"c++{version}", $"/std:c++{version}");
+                TestFunction("CppVersion", $"C++{version}", $"/std:c++{version}");
+            };
+            TestCppVersion("11");
+            TestCppVersion("14");
+            TestCppVersion("17");
+            TestCppVersion("20");
+            TestCppVersion("latest");
+
+            TestFunction("Arch", Architecture.X86, ""); // for msvc arch setting is a null option
+
         }
     }
 }
