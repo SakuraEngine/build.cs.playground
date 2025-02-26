@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -18,6 +19,12 @@ namespace SB.Core
         public DepData Data { get; set; }
     }
 
+    public struct CXXCompileDependencies
+    {
+        public Dictionary<string, DateTime> Files { get; set; }
+        public List<string> Args { get; set; }
+    }
+
     public class CLCompiler : ICompiler
     {
         public CLCompiler(string Path, Dictionary<string, string?> Env)
@@ -33,29 +40,38 @@ namespace SB.Core
         {
             return await Task.Run(() =>
             {
-                var AllArgs = Driver.CalculateArguments();
+                var AllArgsDict = Driver.CalculateArguments();
+                var AllArgsList = AllArgsDict.Values.SelectMany(x => x).ToList();
+                var cxDepFilePath = "D:/SakuraEngine/SimpleCXX/main.cxx.compile.deps.json";
 
-                Process compiler = new Process();
-                compiler.StartInfo.FileName = ExePath;
-                compiler.StartInfo.RedirectStandardInput = false;
-                compiler.StartInfo.CreateNoWindow = false;
-                compiler.StartInfo.UseShellExecute = false;
-                compiler.StartInfo.Arguments = String.Join(" ", AllArgs.Values.SelectMany(x => x).ToArray());
-                foreach (var kvp in VCEnvVariables)
+                var Files = new List<string> { AllArgsDict["Source"][0] as string };
+                Depend.OnChanged(cxDepFilePath, (Depend depend) =>
                 {
-                    compiler.StartInfo.Environment.Add(kvp.Key, kvp.Value);
-                }
-                compiler.Start();
-                compiler.WaitForExit();
+                    Process compiler = new Process();
+                    compiler.StartInfo.FileName = ExePath;
+                    compiler.StartInfo.RedirectStandardInput = false;
+                    compiler.StartInfo.CreateNoWindow = false;
+                    compiler.StartInfo.UseShellExecute = false;
+                    compiler.StartInfo.Arguments = String.Join(" ", AllArgsList);
+                    foreach (var kvp in VCEnvVariables)
+                    {
+                        compiler.StartInfo.Environment.Add(kvp.Key, kvp.Value);
+                    }
+                    compiler.Start();
+                    compiler.WaitForExit();
 
-                string clDepFile = File.ReadAllText(Driver.Arguments["SourceDependencies"][0] as string);
-                var clDependencies = JsonSerializer.Deserialize<CLDependencies>(clDepFile);
+                    var clDepFilePath = Driver.Arguments["SourceDependencies"][0] as string;
+                    var clDeps = JsonSerializer.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath));
+
+                    depend.OutputFiles.AddRange(clDeps.Data.Includes);
+                }, Files, AllArgsList);
+
                 return new CompileResult
                 {
-                    ObjectFile = AllArgs["Source"][0],
-                    IncludeFiles = new HashSet<string>(clDependencies.Data.Includes),
+                    ObjectFile = AllArgsDict["Source"][0],
+                    // IncludeFiles = new HashSet<string>(clDeps?.Data.Includes),
                     PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args[0] as string : "",
-                    ImportModules = new HashSet<string>(clDependencies.Data.ImportedModules),
+                    // ImportModules = new HashSet<string>(clDeps?.Data.ImportedModules),
                     isRestored = false
                 };
             });
