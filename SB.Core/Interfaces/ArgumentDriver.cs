@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -53,12 +55,12 @@ namespace SB.Core
                     if (Result is string)
                         Args.Add(Result as string);
                     if (Result is string[])
-                        Args = Args.Union(Result as string[]).ToList();
+                        Args.AddRange(Result as string[]);
                     if (Result is List<string>)
-                        Args = Args.Union(Result as List<string>).ToList();
+                        Args.AddRange(Result as List<string>);
                 }
             }
-            Args = Args.Union(RawArguments).ToList();
+            Args.AddRange(RawArguments);
             Args.Remove("");
             return Args;
         }

@@ -15,4 +15,11 @@
         AVX512,
         AVX10_1
     }
+
+    public enum OSPlatform
+    {
+        Windows,
+        Linux,
+        OSX
+    }
 }

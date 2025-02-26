@@ -109,7 +109,7 @@ namespace SB.Test
             TestFunction("FpModel", FpModel.Precise, "/fp:precise");
 
             TestFunction("Defines", new Dictionary<string, string?> { { "A", null }, { "B", "2" } }, "/DA /DB=2");
-            TestFunction("IncludeDirs", new string[] { "C:/", "C:/" }, "/IC:/"); // Test Union
+            TestFunction("IncludeDirs", new string[] { "C:/", "C:/", "D:/" }, "/IC:/ /IC:/ /ID:/"); 
 
             TestFunction("RTTI", true, "/GR");
             TestFunction("RTTI", false, "/GR-");
