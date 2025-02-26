@@ -2,6 +2,8 @@
 
 namespace SB.Core
 {
+    using ArgumentName = string;
+
     public class MSVCArgumentDriver : IArgumentDriver
     {
         [Argument] public string Exception(bool Enable) => Enable ? "/EHsc" : "/EHsc-";
@@ -19,7 +21,7 @@ namespace SB.Core
 
         [Argument] public string PDBMode(PDBMode mode) => (mode == Core.PDBMode.Standalone) ? "/Zi" : (mode == Core.PDBMode.Embed) ? "/Z7" : "";
 
-        [Argument] public string PDB(string path) => CheckPath(path) ? $"/Fd{path}" : throw new ArgumentException($"PDB value {path} is not an existed absolute path!");
+        [Argument] public string PDB(string path) => CheckPath(path, false) ? $"/Fd{path}" : throw new ArgumentException($"PDB value {path} is not a valid absolute path!");
 
         [Argument] public string WarningLevel(MSVCWarningLevel level) => $"/{level}";
 
@@ -32,16 +34,19 @@ namespace SB.Core
 
         [Argument] public string[] Defines(Dictionary<string, string?> defines) => defines.Select(kvp => kvp.Value is null ? $"/D{kvp.Key}" : $"/D{kvp.Key}={kvp.Value}").ToArray();
 
-        [Argument] public string[]? IncludeDirs(string[] dirs) => dirs.All(x => CheckPath(x) ? true : throw new ArgumentException($"Invalid include dir {x}!")) ? dirs.Select(dir => $"/I{dir}").ToArray() : null;
+        [Argument] public string[]? IncludeDirs(string[] dirs) => dirs.All(x => CheckPath(x, true) ? true : throw new ArgumentException($"Invalid include dir {x}!")) ? dirs.Select(dir => $"/I{dir}").ToArray() : null;
 
         [Argument] public string RTTI(bool v) => v ? "/GR" : "/GR-";
 
-        [Argument] public string Object(string path) => CheckPath(path) ? $"/Fo{path}" : throw new ArgumentException($"Object value {path} is not an existed absolute path!");
+        [Argument] public string Object(string path) => CheckPath(path, false) ? $"/Fo{path}" : throw new ArgumentException($"Object value {path} is not a valid absolute path!");
 
-        [Argument] public string Source(string path) => CheckPath(path) ? $"{path}" : throw new ArgumentException($"Source value {path} is not an existed absolute path!");
+        [Argument] public string Source(string path) => CheckPath(path, true) ? $"{path}" : throw new ArgumentException($"Source value {path} is not an existed absolute path!");
 
-        private bool CheckPath(string path) => Path.IsPathFullyQualified(path);
-        public Dictionary<string, object?[]?> Arguments { get; } = new Dictionary<string, object?[]?>();
+        [Argument] public string SourceDependencies(string path) => CheckPath(path, false) ? $"/sourceDependencies {path}" : throw new ArgumentException($"SourceDependencies value {path} is not a valid absolute path!");
+
+        private bool CheckPath(string P, bool MustExist) => Path.IsPathFullyQualified(P);
+
+        public Dictionary<ArgumentName, object?[]?> Arguments { get; } = new Dictionary<ArgumentName, object?[]?>();
 
         public HashSet<string> RawArguments { get; } = new HashSet<string> { "/c", "/nologo", "/cgthreads4", "/FC" };
         // /c: dont link while compiling, https://learn.microsoft.com/zh-cn/cpp/build/reference/c-compile-without-linking?view=msvc-170

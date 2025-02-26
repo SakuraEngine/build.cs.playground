@@ -1,5 +1,6 @@
 using Microsoft.Extensions.FileSystemGlobbing;
 using System.Diagnostics;
+using System.Linq;
 
 namespace SB.Core
 {
@@ -63,13 +64,28 @@ namespace SB.Core
 
             var oldEnv = EnvReader.Load(oldEnvPath);
             VCEnvVariables = EnvReader.Load(newEnvPath);
+            // Preprocess: cull old env variables
             foreach (var oldVar in oldEnv)
             {
                 if (VCEnvVariables.ContainsKey(oldVar.Key) && VCEnvVariables[oldVar.Key] == oldEnv[oldVar.Key])
                     VCEnvVariables.Remove(oldVar.Key);
             }
+            // Preprocess: cull user env variables
+            var vcPaths = VCEnvVariables["Path"].Split(';').ToHashSet();
+            vcPaths.ExceptWith(oldEnv["Path"].Split(';').ToHashSet());
+            VCEnvVariables["Path"] = string.Join(";", vcPaths);
+            // Enum all files and pick usable tools
+            foreach (var path in vcPaths)
+            {
+                foreach (var file in Directory.EnumerateFiles(path))
+                {
+                    if (Path.GetFileName(file) == "cl.exe")
+                        CLCCPath = file;
+                }
+            }
+
             ToolchainVersion = Version.Parse(VCEnvVariables["VSCMD_VER"]);
-            CLCC = new CLCompiler(VCEnvVariables);
+            CLCC = new CLCompiler(CLCCPath, VCEnvVariables);
         }
 
         private Version ToolchainVersion;
@@ -81,5 +97,6 @@ namespace SB.Core
         public string? VCVars64Bat { get; private set; }
         public Dictionary<string, string?> VCEnvVariables { get; private set; }
         public CLCompiler CLCC { get; private set; }
+        public string CLCCPath { get; private set; }
     }
 }

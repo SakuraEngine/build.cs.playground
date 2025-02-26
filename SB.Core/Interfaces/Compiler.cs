@@ -2,11 +2,11 @@
 {
     public struct CompileResult
     {
-        public string ObjectFile { get; }
-        public string PDBFile { get; }
-        public HashSet<string> IncludeFiles { get; }
-        public HashSet<string> ImportModules { get; }
-        public bool isRestored { get; }
+        public string ObjectFile { get; init; }
+        public string PDBFile { get; init; }
+        public HashSet<string> IncludeFiles { get; init; }
+        public HashSet<string> ImportModules { get; init; }
+        public bool isRestored { get; init; }
     }
 
     public interface ICompiler

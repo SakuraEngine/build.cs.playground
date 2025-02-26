@@ -8,6 +8,8 @@ using System.Xml.Linq;
 
 namespace SB.Core
 {
+    using ArgumentName = string;
+
     public enum PDBMode
     {
         Disable,
@@ -42,10 +44,9 @@ namespace SB.Core
 
     public interface IArgumentDriver
     {
-        public List<string> CalculateArguments()
+        public Dictionary<ArgumentName, string[]> CalculateArguments()
         {
-            List<string> Args = new List<string>();
-            Args.Capacity = Arguments.Count + RawArguments.Count;
+            Dictionary<ArgumentName, string[]> Args = new();
             var DriverType = GetType();
             foreach (var Method in DriverType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
             {
@@ -53,15 +54,14 @@ namespace SB.Core
                 {
                     var Result = Method.Invoke(this, ArgumentValue);
                     if (Result is string)
-                        Args.Add(Result as string);
+                        Args.Add(Method.Name, new string[] { Result as string });
                     if (Result is string[])
-                        Args.AddRange(Result as string[]);
+                        Args.Add(Method.Name, Result as string[]);
                     if (Result is List<string>)
-                        Args.AddRange(Result as List<string>);
+                        Args.Add(Method.Name, (Result as List<string>).ToArray());
                 }
             }
-            Args.AddRange(RawArguments);
-            Args.Remove("");
+            Args.Add("RAW", RawArguments.ToArray());
             return Args;
         }
 
@@ -78,14 +78,14 @@ namespace SB.Core
             return JsonSerializer.Serialize(compile_commands, opts);
         }
 
-        public IArgumentDriver AddArgument(string key, object value)
+        public IArgumentDriver AddArgument(ArgumentName key, object value)
         {
             object[] args = { value };
             Arguments.Add(key, args);
             return this;
         }
 
-        public IArgumentDriver AddArgument(string key, object?[] value)
+        public IArgumentDriver AddArguments(ArgumentName key, object?[] value)
         {
             Arguments.Add(key, value);
             return this;
@@ -95,7 +95,7 @@ namespace SB.Core
             RawArguments.Add(Arg);
         }
 
-        public Dictionary<string, object?[]?> Arguments { get; }
+        public Dictionary<ArgumentName, object?[]?> Arguments { get; }
         public HashSet<string> RawArguments { get; }
     }
 

@@ -42,18 +42,18 @@ namespace SB.Test
         [TestMethod]
         public void TestCompileArgDriver()
         {
-            var TestFunction = (string Name, object Value, string Result) => {
+            var TestFunction = (string Name, object Value, string Expected) => {
                 var driver = new MSVCArgumentDriver() as IArgumentDriver;
                 object[] args = { Value };
                 driver.Arguments.Add(Name, args);
 
-                var ArgumentsString = String.Join(" ", driver.CalculateArguments());
+                var AllCalculatedVars = driver.CalculateArguments().Values.SelectMany(x => x).ToArray();
+                var ArgumentsString = new HashSet<string>(AllCalculatedVars);
 
-                if (Result != "")
-                    Result += " ";
-                Result += String.Join(" ", driver.RawArguments);
+                var ExpectedArgs = new HashSet<string>(driver.RawArguments.Union(Expected.Split(" ")).ToArray());
 
-                Assert.AreEqual(ArgumentsString, Result);
+                ArgumentsString.ExceptWith(ExpectedArgs);
+                Assert.AreEqual(ArgumentsString.Count, 0);
             };
 
             TestFunction("Exception", true, "/EHsc");
@@ -114,7 +114,7 @@ namespace SB.Test
             TestFunction("RTTI", true, "/GR");
             TestFunction("RTTI", false, "/GR-");
 
-            /*
+            
             var driver = new MSVCArgumentDriver() as IArgumentDriver;
             driver.AddArgument("CppVersion", "20");
             driver.AddArgument("Exception", true);
@@ -127,11 +127,14 @@ namespace SB.Test
             driver.AddArgument("Defines", new Dictionary<string, string?> {
                 { "A", null }, { "B", "1" }, { "C", "B" }
             });
-            driver.AddArgument("IncludeDirs", new string[] { "C:/ " });
+            driver.AddArgument("IncludeDirs", new string[] { "D:/SakuraEngine/SimpleCXX" });
             driver.AddArgument("RTTI", false);
-            driver.AddArgument("Source", "C:/");
-            var compile_commands = driver.CompileCommands("C:/");
-            */
+            driver.AddArgument("Source", "D:/SakuraEngine/SimpleCXX/main.cpp");
+            driver.AddArgument("Object", "D:/SakuraEngine/SimpleCXX/main.o");
+            driver.AddArgument("SourceDependencies", "D:/SakuraEngine/SimpleCXX/main.cldeps");
+            driver.AddRawArgument("/FeD:/SakuraEngine/SimpleCXX/main.exe");
+            var CTask = vs.Compiler.Compile(driver);
+            CTask.Wait(10000);
         }
     }
 }
