@@ -42,6 +42,13 @@ namespace SB.Core
         Wall
     }
 
+    public enum TargetType
+    {
+        Static,
+        Dynamic,
+        Executable
+    }
+
     public interface IArgumentDriver
     {
         public Dictionary<ArgumentName, string[]> CalculateArguments()

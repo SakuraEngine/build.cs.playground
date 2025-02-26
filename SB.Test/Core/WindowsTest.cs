@@ -43,7 +43,7 @@ namespace SB.Test
         public void TestCompileArgDriver()
         {
             var TestFunction = (string Name, object Value, string Expected) => {
-                var driver = new MSVCArgumentDriver() as IArgumentDriver;
+                var driver = new CLArgumentDriver() as IArgumentDriver;
                 object[] args = { Value };
                 driver.Arguments.Add(Name, args);
 
@@ -87,7 +87,7 @@ namespace SB.Test
             TestFunction("PDBMode", PDBMode.Embed, "/Z7");
             TestFunction("PDBMode", PDBMode.Disable, "");
             
-            TestFunction("PDB", "C:/", "/FdC:/");
+            TestFunction("PDB", "C:/pdb.pdb", "/FdC:/pdb.pdb");
 
             TestFunction("WarningAsError", true, "/WX");
             TestFunction("WarningAsError", false, "");
@@ -114,8 +114,8 @@ namespace SB.Test
             TestFunction("RTTI", true, "/GR");
             TestFunction("RTTI", false, "/GR-");
 
-            
-            var driver = new MSVCArgumentDriver() as IArgumentDriver;
+            /*
+            var driver = new CLArgumentDriver() as IArgumentDriver;
             driver.AddArgument("CppVersion", "20");
             driver.AddArgument("Exception", true);
             driver.AddArgument("RuntimeLibrary", "MD");
@@ -135,6 +135,51 @@ namespace SB.Test
             driver.AddRawArgument("/FeD:/SakuraEngine/SimpleCXX/main.exe");
             var CTask = vs.Compiler.Compile(driver);
             CTask.Wait(10000);
+            */
+        }
+
+        [TestMethod]
+        public void TestLinkerArgDriver()
+        {
+            var TestFunction = (string Name, object Value, string Expected) => {
+                var driver = new LINKArgumentDriver() as IArgumentDriver;
+                object[] args = { Value };
+                driver.Arguments.Add(Name, args);
+
+                var AllCalculatedVars = driver.CalculateArguments().Values.SelectMany(x => x).ToArray();
+                var ArgumentsString = new HashSet<string>(AllCalculatedVars);
+
+                var ExpectedArgs = new HashSet<string>(driver.RawArguments.Union(Expected.Split(" ")).ToArray());
+
+                ArgumentsString.ExceptWith(ExpectedArgs);
+                Assert.AreEqual(ArgumentsString.Count, 0);
+            };
+
+            TestFunction("Arch", Architecture.X86, "/MACHINE:X86");
+            TestFunction("Arch", Architecture.X64, "/MACHINE:X64");
+            TestFunction("Arch", Architecture.ARM64, "/MACHINE:ARM64");
+
+            TestFunction("PDBMode", PDBMode.Disable, "/DEBUG:NONE");
+            TestFunction("PDBMode", PDBMode.Embed, "/DEBUG:FULL");
+            TestFunction("PDBMode", PDBMode.Standalone, "/DEBUG:FULL");
+
+            TestFunction("PDB", "C:/pdb.pdb", "/PDB:C:/pdb.pdb");
+
+            TestFunction("RuntimeLibrary", "MT", "/NODEFAULTLIB:msvcrt.lib");
+            TestFunction("RuntimeLibrary", "MTd", "/NODEFAULTLIB:msvcrt.lib");
+            TestFunction("RuntimeLibrary", "MD", "");
+            TestFunction("RuntimeLibrary", "MDd", "");
+
+            TestFunction("TargetType", TargetType.Static, "/LIB");
+            TestFunction("TargetType", TargetType.Dynamic, "/DLL");
+            TestFunction("TargetType", TargetType.Executable, "");
+
+            TestFunction("LinkDirs", new string[] { "C:/", "D:/" }, "/LIBPATH:C:/ /LIBPATH:D:/");
+
+            TestFunction("Inputs", new string[] { "C:/a.o", "D:/b.o", "D:/e.lib" }, "C:/a.o D:/b.o D:/e.lib");
+            TestFunction("Output", "C:/a.lib", "/OUT:C:/a.lib");
+            TestFunction("Output", "C:/b.dll", "/OUT:C:/b.dll");
+            TestFunction("Output", "C:/c.exe", "/OUT:C:/c.exe");
         }
     }
 }

@@ -81,13 +81,15 @@ namespace SB.Core
                 {
                     if (Path.GetFileName(file) == "cl.exe")
                         CLCCPath = file;
+                    if (Path.GetFileName(file) == "link.exe")
+                        LINKPath = file;
                 }
             }
 
             ToolchainVersion = Version.Parse(VCEnvVariables["VSCMD_VER"]);
             CLCC = new CLCompiler(CLCCPath, BuildTempPath, VCEnvVariables);
         }
-
+        
         private Version ToolchainVersion;
         public readonly int VSVersion;
         public readonly Architecture HostArch;
@@ -98,5 +100,13 @@ namespace SB.Core
         public Dictionary<string, string?> VCEnvVariables { get; private set; }
         public CLCompiler CLCC { get; private set; }
         public string CLCCPath { get; private set; }
+        public string LINKPath { get; private set; }
+
+        #region HelpersForTools
+        public static bool CheckPath(string P, bool MustExist) => Path.IsPathFullyQualified(P) && (!MustExist || Directory.Exists(P));
+        public static bool CheckFile(string P, bool MustExist) => Path.IsPathFullyQualified(P) && (!MustExist || File.Exists(P));
+        public static bool IsValidRT(string what) => ValidRuntimeArguments.Contains(what);
+        private static readonly string[] ValidRuntimeArguments = ["MT", "MTd", "MD", "MDd"];
+        #endregion
     }
 }
