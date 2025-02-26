@@ -1,6 +1,5 @@
 using Microsoft.Extensions.FileSystemGlobbing;
 using System.Diagnostics;
-using System.Linq;
 
 namespace SB.Core
 {
@@ -27,6 +26,7 @@ namespace SB.Core
         public ICompiler Compiler => CLCC;
         public IArchiver Archiver => null;
         public ILinker Linker => null;
+        public string BuildTempPath => Directory.CreateDirectory(Path.Combine(SourceLocation.BuildTempPath, this.Version.ToString())).FullName;
 
         private void FindVCVars()
         {
@@ -85,7 +85,7 @@ namespace SB.Core
             }
 
             ToolchainVersion = Version.Parse(VCEnvVariables["VSCMD_VER"]);
-            CLCC = new CLCompiler(CLCCPath, VCEnvVariables);
+            CLCC = new CLCompiler(CLCCPath, BuildTempPath, VCEnvVariables);
         }
 
         private Version ToolchainVersion;

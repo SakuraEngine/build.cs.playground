@@ -7,5 +7,6 @@ namespace SB.Core
         public static string File([CallerFilePath] string path = null) => path;
         public static int Line([CallerLineNumber] int line = 0) => line;
         public static string MemberName([CallerMemberName] string member = null) => member;
+        public static string BuildTempPath => Path.GetTempPath();
     }
 }

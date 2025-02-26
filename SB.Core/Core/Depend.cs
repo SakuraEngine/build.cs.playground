@@ -1,8 +1,5 @@
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SB.Core
@@ -42,7 +39,7 @@ namespace SB.Core
             var check = () => {
                 if (Path.Exists(DepFile))
                 {
-                    var Deps = JsonSerializer.Deserialize<Depend>(File.ReadAllText(DepFile));
+                    var Deps = Json.Deserialize<Depend>(File.ReadAllText(DepFile));
                     // check file list change
                     if (!SortedFiles.SequenceEqual(Deps.InputFiles.Keys))
                         return false;
@@ -74,7 +71,7 @@ namespace SB.Core
             {
                 depFile.OutputFiles.Sort();
                 depFile.Artifacts = depFile.OutputFiles.Select(x => new KeyValuePair<string, DateTime>(x, Directory.GetLastWriteTimeUtc(x))).ToImmutableSortedDictionary();
-                File.WriteAllText(DepFile, JsonSerializer.Serialize(depFile));
+                File.WriteAllText(DepFile, Json.Serialize(depFile));
             };
 
             if (!check())

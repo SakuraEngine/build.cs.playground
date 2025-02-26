@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace SB.Core
 {
@@ -21,11 +20,25 @@ namespace SB.Core
 
     public class CLCompiler : ICompiler
     {
-        public CLCompiler(string Path, Dictionary<string, string?> Env)
+        public static string GetUniqueTempFileName(string File, string Hint, string Extension, IEnumerable<string> Args)
+        {
+            var SHA = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(String.Join("", Args)));
+            return $"{Path.GetFileName(File)}.{Hint}.{Convert.ToHexString(SHA)}.{Extension}";
+        }
+
+        public CLCompiler(string ExePath, string TempPath, Dictionary<string, string?> Env)
         {
             VCEnvVariables = Env;
             CLVersion = Version.Parse(VCEnvVariables["VCToolsVersion"]);
-            ExePath = Path;
+            this.ExePath = ExePath;
+            this.TempPath = TempPath;
+
+            if (!File.Exists(ExePath))
+                throw new ArgumentException($"CLCompiler: ExePath: {ExePath} is not an existed absolute path!");
+            if (!Path.IsPathFullyQualified(TempPath))
+                throw new ArgumentException($"CLCompiler: TempPath: {TempPath} is not an valid absolute path!");
+            if (!Directory.Exists(TempPath))
+                throw new ArgumentException($"CLCompiler: TempPath: {TempPath} is not an existed absolute path!");
         }
 
         public Version Version => CLVersion;
@@ -36,9 +49,9 @@ namespace SB.Core
             {
                 var AllArgsDict = Driver.CalculateArguments();
                 var AllArgsList = AllArgsDict.Values.SelectMany(x => x).ToList();
-                var cxDepFilePath = "D:/SakuraEngine/SimpleCXX/main.cxx.compile.deps.json";
+                var SourceFile = AllArgsDict["Source"][0] as string;
 
-                var Files = new List<string> { AllArgsDict["Source"][0] as string };
+                var cxDepFilePath = Path.Combine(TempPath, GetUniqueTempFileName(SourceFile, "cxx.compile.deps", "json", AllArgsList));
                 Depend.OnChanged(cxDepFilePath, (Depend depend) =>
                 {
                     Process compiler = new Process
@@ -60,10 +73,10 @@ namespace SB.Core
                     compiler.WaitForExit();
 
                     var clDepFilePath = Driver.Arguments["SourceDependencies"][0] as string;
-                    var clDeps = JsonSerializer.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath));
+                    var clDeps = Json.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath));
 
                     depend.OutputFiles.AddRange(clDeps.Data.Includes);
-                }, Files, AllArgsList);
+                }, new List<string> { SourceFile }, AllArgsList);
 
                 return new CompileResult
                 {
@@ -76,5 +89,6 @@ namespace SB.Core
         public readonly Dictionary<string, string?> VCEnvVariables;
         private readonly Version CLVersion;
         private readonly string ExePath;
+        private readonly string TempPath;
     }
 }

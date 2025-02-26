@@ -57,8 +57,8 @@ namespace SB.Core
                         Args.Add(Method.Name, new string[] { Result as string });
                     if (Result is string[])
                         Args.Add(Method.Name, Result as string[]);
-                    if (Result is List<string>)
-                        Args.Add(Method.Name, (Result as List<string>).ToArray());
+                    else if (Result is IEnumerable<string>)
+                        Args.Add(Method.Name, (Result as IEnumerable<string>).ToArray());
                 }
             }
             Args.Add("RAW", RawArguments.ToArray());
@@ -73,9 +73,7 @@ namespace SB.Core
                 arguments = CalculateArguments(),
                 file = Arguments["Source"]
             };
-            JsonSerializerOptions opts = new System.Text.Json.JsonSerializerOptions();
-            opts.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
-            return JsonSerializer.Serialize(compile_commands, opts);
+            return Json.Serialize(compile_commands);
         }
 
         public IArgumentDriver AddArgument(ArgumentName key, object value)
