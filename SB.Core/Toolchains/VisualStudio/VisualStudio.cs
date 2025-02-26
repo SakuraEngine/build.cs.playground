@@ -5,14 +5,9 @@ namespace SB.Core
 {
     public partial class VisualStudio : IToolchain
     {
-        public enum Version
+        public VisualStudio(int VSVersion = 2022, Architecture HostArch = Architecture.X64, Architecture TargetArch = Architecture.X64)
         {
-            V2022
-        };
-
-        public VisualStudio(Version version = Version.V2022, Architecture HostArch = Architecture.X64, Architecture TargetArch = Architecture.X64)
-        {
-            this.version = version;
+            this.VSVersion = VSVersion;
             this.HostArch = HostArch;
             this.TargetArch = TargetArch;
         }
@@ -27,20 +22,10 @@ namespace SB.Core
             });
         }
 
-        public ICompiler Compiler()
-        {
-            return null;
-        }
-
-        public IArchiver Archiver()
-        {
-            return null;
-        }
-
-        public ILinker Linker()
-        {
-            return null;
-        }
+        public Version Version => ToolchainVersion;
+        public ICompiler Compiler => CLCC;
+        public IArchiver Archiver => null;
+        public ILinker Linker => null;
 
         private void FindVCVars()
         {
@@ -49,7 +34,7 @@ namespace SB.Core
             matcher.AddIncludePatterns(new[] { "./**/VC/Auxiliary/Build/vcvarsall.bat" });
             foreach (var Disk in Windows.EnumLogicalDrives())
             {
-                var VersionPostfix = (version == Version.V2022) ? "/2022" : "";
+                var VersionPostfix = (VSVersion == 2022) ? "/2022" : "";
                 var searchDirectory = $"{Disk}:/Program Files/Microsoft Visual Studio{VersionPostfix}";
                 IEnumerable<string> matchingFiles = matcher.GetResultsInFullPath(searchDirectory);
                 foreach (string file in matchingFiles)
@@ -64,8 +49,8 @@ namespace SB.Core
         private void RunVCVars()
         {
             string ArchString = (TargetArch == HostArch) ? archStringMap[TargetArch] : $"{archStringMap[HostArch]}_{archStringMap[TargetArch]}";
-            var oldEnvPath = Path.Combine(Path.GetTempPath(), $"vcvars_{version}_prev_{HostArch}_{TargetArch}.txt");
-            var newEnvPath = Path.Combine(Path.GetTempPath(), $"vcvars_{version}_post_{HostArch}_{TargetArch}.txt");
+            var oldEnvPath = Path.Combine(Path.GetTempPath(), $"vcvars_{VSVersion}_prev_{HostArch}_{TargetArch}.txt");
+            var newEnvPath = Path.Combine(Path.GetTempPath(), $"vcvars_{VSVersion}_post_{HostArch}_{TargetArch}.txt");
 
             Process cmd = new Process();
             cmd.StartInfo.FileName = "cmd.exe";
@@ -77,21 +62,24 @@ namespace SB.Core
             cmd.WaitForExit();
 
             var oldEnv = EnvReader.Load(oldEnvPath);
-            var newEnv = EnvReader.Load(newEnvPath);
+            VCEnvVariables = EnvReader.Load(newEnvPath);
             foreach (var oldVar in oldEnv)
             {
-                if (newEnv.ContainsKey(oldVar.Key) && newEnv[oldVar.Key] == oldEnv[oldVar.Key])
-                    newEnv.Remove(oldVar.Key);
+                if (VCEnvVariables.ContainsKey(oldVar.Key) && VCEnvVariables[oldVar.Key] == oldEnv[oldVar.Key])
+                    VCEnvVariables.Remove(oldVar.Key);
             }
-            VCEnvVariables = newEnv;
+            ToolchainVersion = Version.Parse(VCEnvVariables["VSCMD_VER"]);
+            CLCC = new CLCompiler(VCEnvVariables);
         }
 
-        public readonly Version version;
+        private Version ToolchainVersion;
+        public readonly int VSVersion;
         public readonly Architecture HostArch;
         public readonly Architecture TargetArch;
 
         public string? VCVarsAllBat { get; private set; }
         public string? VCVars64Bat { get; private set; }
         public Dictionary<string, string?> VCEnvVariables { get; private set; }
+        public CLCompiler CLCC { get; private set; }
     }
 }

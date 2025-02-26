@@ -3,8 +3,9 @@
     public interface IToolchain
     {
         public Task<bool> Initialize();
-        public ICompiler Compiler();
-        public IArchiver Archiver();
-        public ILinker Linker();
+        public Version Version { get; }
+        public ICompiler Compiler { get; }
+        public IArchiver Archiver { get; }
+        public ILinker Linker { get;  }
     }
 }

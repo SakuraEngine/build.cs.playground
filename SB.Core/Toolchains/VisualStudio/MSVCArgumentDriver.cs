@@ -15,7 +15,7 @@ namespace SB.Core
         [Argument] public string Arch(Architecture arch) => archMap.TryGetValue(arch, out var r) ? r : throw new ArgumentException($"Invalid architecture \"{arch}\" for MSVC!");
         static readonly Dictionary<Architecture, string> archMap = new Dictionary<Architecture, string> { { Architecture.X86, "" }, { Architecture.X64, "" }, { Architecture.ARM64, "" } };
 
-        [Argument] public string SIMD(SIMDArchitecture simd) => "/arch:" + simd.ToString().Replace("_", ".");
+        [Argument] public string SIMD(SIMDArchitecture simd) => $"/arch:{simd}".Replace("_", ".");
 
         [Argument] public string PDBMode(PDBMode mode) => (mode == Core.PDBMode.Standalone) ? "/Zi" : (mode == Core.PDBMode.Embed) ? "/Z7" : "";
 

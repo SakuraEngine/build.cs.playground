@@ -6,6 +6,13 @@ namespace SB.Test
     [TestClass]
     public sealed class Test1
     {
+        VisualStudio vs = new VisualStudio(2022);
+        
+        public Test1()
+        {
+            vs.Initialize().Wait(10000);
+        }
+
         [TestMethod]
         public void TestListLogicDisks()
         {
@@ -17,11 +24,11 @@ namespace SB.Test
         }        
         
         [TestMethod]
-        public void TestFindVCVars()
+        public void TestToolset()
         {
-            VisualStudio vs = new VisualStudio(VisualStudio.Version.V2022);
-            vs.Initialize().Wait(10000);
             Assert.IsTrue(Path.Exists(vs.VCVars64Bat));
+            Assert.IsTrue(vs.Compiler.Version.Build > 0);
+            Assert.IsTrue(vs.Version.Build > 0);
         }
 
         [TestMethod]
