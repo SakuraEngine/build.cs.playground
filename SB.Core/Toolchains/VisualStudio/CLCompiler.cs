@@ -19,12 +19,6 @@ namespace SB.Core
         public DepData Data { get; set; }
     }
 
-    public struct CXXCompileDependencies
-    {
-        public Dictionary<string, DateTime> Files { get; set; }
-        public List<string> Args { get; set; }
-    }
-
     public class CLCompiler : ICompiler
     {
         public CLCompiler(string Path, Dictionary<string, string?> Env)
@@ -47,12 +41,17 @@ namespace SB.Core
                 var Files = new List<string> { AllArgsDict["Source"][0] as string };
                 Depend.OnChanged(cxDepFilePath, (Depend depend) =>
                 {
-                    Process compiler = new Process();
-                    compiler.StartInfo.FileName = ExePath;
-                    compiler.StartInfo.RedirectStandardInput = false;
-                    compiler.StartInfo.CreateNoWindow = false;
-                    compiler.StartInfo.UseShellExecute = false;
-                    compiler.StartInfo.Arguments = String.Join(" ", AllArgsList);
+                    Process compiler = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = ExePath,
+                            RedirectStandardInput = false,
+                            CreateNoWindow = false,
+                            UseShellExecute = false,
+                            Arguments = String.Join(" ", AllArgsList)
+                        }
+                    };
                     foreach (var kvp in VCEnvVariables)
                     {
                         compiler.StartInfo.Environment.Add(kvp.Key, kvp.Value);
@@ -69,10 +68,7 @@ namespace SB.Core
                 return new CompileResult
                 {
                     ObjectFile = AllArgsDict["Source"][0],
-                    // IncludeFiles = new HashSet<string>(clDeps?.Data.Includes),
-                    PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args[0] as string : "",
-                    // ImportModules = new HashSet<string>(clDeps?.Data.ImportedModules),
-                    isRestored = false
+                    PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args[0] as string : ""
                 };
             });
         }

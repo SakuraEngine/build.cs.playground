@@ -4,9 +4,6 @@
     {
         public string ObjectFile { get; init; }
         public string PDBFile { get; init; }
-        public HashSet<string> IncludeFiles { get; init; }
-        public HashSet<string> ImportModules { get; init; }
-        public bool isRestored { get; init; }
     }
 
     public interface ICompiler
