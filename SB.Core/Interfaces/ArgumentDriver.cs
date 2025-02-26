@@ -6,28 +6,6 @@ using System.Xml.Linq;
 
 namespace SB.Core
 {
-    [AttributeUsage(AttributeTargets.Method)]
-    public class Argument : Attribute
-    {
-
-    }
-
-    public enum Architecture
-    {
-        X86,
-        X64,
-        ARM64
-    }
-
-    public enum SIMDArchitecture
-    {
-        SSE2,
-        SSE4_2,
-        AVX,
-        AVX512,
-        AVX10_1
-    }
-
     public enum PDBMode
     {
         Disable,
@@ -117,5 +95,11 @@ namespace SB.Core
 
         public Dictionary<string, object?[]?> Arguments { get; }
         public HashSet<string> RawArguments { get; }
+    }
+
+    [AttributeUsage(AttributeTargets.Method)]
+    public class Argument : Attribute
+    {
+
     }
 }

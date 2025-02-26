@@ -5,11 +5,11 @@ namespace SB.Core
 {
     public partial class VisualStudio : IToolchain
     {
-        public VisualStudio(int VSVersion = 2022, Architecture HostArch = Architecture.X64, Architecture TargetArch = Architecture.X64)
+        public VisualStudio(int VSVersion = 2022, Architecture? HostArch = null, Architecture? TargetArch = null)
         {
             this.VSVersion = VSVersion;
-            this.HostArch = HostArch;
-            this.TargetArch = TargetArch;
+            this.HostArch = HostArch ?? HostInformation.HostArch;
+            this.TargetArch = TargetArch ?? HostInformation.HostArch;
         }
 
         public async Task<bool> Initialize()
