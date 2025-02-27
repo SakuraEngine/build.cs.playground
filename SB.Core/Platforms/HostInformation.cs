@@ -7,7 +7,8 @@
     public class HostInformation
     {
         public static Architecture HostArch => archMap.TryGetValue(DotnetRuntimeInfo.OSArchitecture, out var arch) ? arch : throw new Exception($"Unsupported Platform Architecture: {DotnetRuntimeInfo.OSArchitecture}");
-        public static OSPlatform HostOS => 
+        
+        public static OSPlatform HostOS =>
             DotnetRuntimeInfo.IsOSPlatform(DotnetOSPlatform.Windows) ? OSPlatform.Windows :
             DotnetRuntimeInfo.IsOSPlatform(DotnetOSPlatform.OSX) ? OSPlatform.OSX :
             DotnetRuntimeInfo.IsOSPlatform(DotnetOSPlatform.Linux) ? OSPlatform.Linux : throw new Exception($"Unsupported Host Platform OS!");

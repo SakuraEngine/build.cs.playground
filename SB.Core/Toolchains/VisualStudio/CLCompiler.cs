@@ -50,21 +50,21 @@ namespace SB.Core
                 // FUCK YOU MICROSOFT THIS IS WEIRD
                 var Output = compiler.StandardError.ReadToEnd();
                 Regex pattern = new Regex(@"\d+(\.\d+)+");
-                return Version.Parse(pattern.Match(Output).Value);
+                this.CLVersion = Version.Parse(pattern.Match(Output).Value);
+                return this.CLVersion;
             });
         }
 
-        public async Task<CompileResult> Compile(IArgumentDriver Driver)
+        public async Task<CompileResult> Compile(TaskFingerprint fingerprint, IArgumentDriver Driver)
         {
-            return await Task.Run(() =>
+            return await TaskManager.Run(fingerprint, () =>
             {
                 var AllArgsDict = Driver.CalculateArguments();
                 var AllArgsList = AllArgsDict.Values.SelectMany(x => x).ToList();
 
                 var SourceFile = AllArgsDict["Source"][0] as string;
-                var ObjectFile = Driver.Arguments["Object"][0] as string;
-
-                var cxDepFilePath = Path.Combine(TempPath, VS.GetUniqueTempFileName(SourceFile, "cxx.compile.deps", "json", AllArgsList));
+                var ObjectFile = Driver.Arguments["Object"] as string;
+                var cxDepFilePath = Path.Combine(TempPath, VS.GetUniqueTempFileName(SourceFile, fingerprint.TaskName, ".deps.json", AllArgsList));
                 Depend.OnChanged(cxDepFilePath, (Depend depend) =>
                 {
                     Process compiler = new Process
@@ -85,7 +85,7 @@ namespace SB.Core
                     compiler.Start();
                     compiler.WaitForExit();
 
-                    var clDepFilePath = Driver.Arguments["SourceDependencies"][0] as string;
+                    var clDepFilePath = Driver.Arguments["SourceDependencies"] as string;
                     var clDeps = Json.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath));
 
                     depend.ExternalFiles.AddRange(clDeps.Data.Includes);
@@ -95,7 +95,7 @@ namespace SB.Core
                 return new CompileResult
                 {
                     ObjectFile = ObjectFile,
-                    PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args[0] as string : ""
+                    PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args as string : ""
                 };
             });
         }
@@ -112,7 +112,7 @@ namespace SB.Core
 
         public readonly Dictionary<string, string?> VCEnvVariables;
         private readonly Task<Version> CLVersionTask;
-        private readonly Version CLVersion;
+        private Version CLVersion;
         private readonly string ExePath;
         private readonly string TempPath;
     }

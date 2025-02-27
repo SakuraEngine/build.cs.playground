@@ -59,7 +59,7 @@ namespace SB.Core
             {
                 if (Arguments.TryGetValue(Method.Name, out var ArgumentValue))
                 {
-                    var Result = Method.Invoke(this, ArgumentValue);
+                    var Result = Method.Invoke(this, new object[] { ArgumentValue });
                     if (Result is string)
                         Args.Add(Method.Name, new string[] { Result as string });
                     if (Result is string[])
@@ -74,7 +74,7 @@ namespace SB.Core
 
         public string CompileCommands(string directory)
         {
-            dynamic compile_commands = new 
+            dynamic compile_commands = new
             {
                 directory = directory,
                 arguments = CalculateArguments(),
@@ -85,28 +85,22 @@ namespace SB.Core
 
         public IArgumentDriver AddArgument(ArgumentName key, object value)
         {
-            object[] args = { value };
-            Arguments.Add(key, args);
-            return this;
-        }
-
-        public IArgumentDriver AddArguments(ArgumentName key, object?[] value)
-        {
             Arguments.Add(key, value);
             return this;
         }
+
         public IArgumentDriver AddRawArgument(string Arg)
         {
             RawArguments.Add(Arg);
             return this;
         }
 
-        public Dictionary<ArgumentName, object?[]?> Arguments { get; }
+        public Dictionary<ArgumentName, object?> Arguments { get; }
         public HashSet<string> RawArguments { get; }
     }
 
     [AttributeUsage(AttributeTargets.Method)]
-    public class Argument : Attribute
+    public class TargetSetter : Attribute
     {
 
     }

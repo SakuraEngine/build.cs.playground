@@ -20,16 +20,16 @@ namespace SB.Core
                 throw new ArgumentException($"LINK: TempPath: {TempPath} is not an existed absolute path!");
         }
 
-        public async Task<LinkResult> Link(IArgumentDriver Driver)
+        public async Task<LinkResult> Link(TaskFingerprint fingerprint, IArgumentDriver Driver)
         {
-            return await Task.Run(() =>
+            return await TaskManager.Run(fingerprint, () =>
             {
                 var AllArgsDict = Driver.CalculateArguments();
                 var AllArgsList = AllArgsDict.Values.SelectMany(x => x).ToList();
-                var InputFiles = AllArgsDict["Inputs"] as string[];
-                var OutputFile = Driver.Arguments["Output"][0] as string;
 
-                var cxDepFilePath = Path.Combine(TempPath, VS.GetUniqueTempFileName(OutputFile, "cxx.link.deps", "json", AllArgsList));
+                var InputFiles = AllArgsDict["Inputs"] as string[];
+                var OutputFile = Driver.Arguments["Output"] as string;
+                var cxDepFilePath = Path.Combine(TempPath, VS.GetUniqueTempFileName(OutputFile, fingerprint.TaskName, ".deps.json", AllArgsList));
                 Depend.OnChanged(cxDepFilePath, (Depend depend) =>
                 {
                     Process compiler = new Process
@@ -56,7 +56,7 @@ namespace SB.Core
                 return new LinkResult
                 {
                     TargetFile = AllArgsDict["Output"][0],
-                    PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args[0] as string : ""
+                    PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args as string : ""
                 };
             });
         }

@@ -7,11 +7,11 @@ namespace SB.Core
     public struct Depend
     {
         [JsonInclude]
-        private readonly ImmutableSortedDictionary<string, DateTime> InputFiles { get; init; }
+        private readonly ImmutableSortedDictionary<string, DateTime>? InputFiles { get; init; }
         [JsonInclude]
-        private readonly List<string> InputArgs { get; init; }
+        private readonly List<string>? InputArgs { get; init; }
         [JsonInclude]
-        private ImmutableSortedDictionary<string, DateTime> ExternalDeps { get; set; }
+        private ImmutableSortedDictionary<string, DateTime>? ExternalDeps { get; set; }
 
         [JsonIgnore]
         public readonly List<string> ExternalFiles { get; } = new();

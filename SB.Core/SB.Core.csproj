@@ -19,4 +19,8 @@
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="9.0.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\SB.SourceGenerator\SB.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
 </Project>

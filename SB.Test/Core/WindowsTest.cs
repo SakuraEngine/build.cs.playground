@@ -44,8 +44,7 @@ namespace SB.Test
         {
             var TestFunction = (string Name, object Value, string Expected) => {
                 var driver = new CLArgumentDriver() as IArgumentDriver;
-                object[] args = { Value };
-                driver.Arguments.Add(Name, args);
+                driver.Arguments.Add(Name, Value);
 
                 var AllCalculatedVars = driver.CalculateArguments().Values.SelectMany(x => x).ToArray();
                 var ArgumentsString = new HashSet<string>(AllCalculatedVars);
@@ -120,8 +119,7 @@ namespace SB.Test
         {
             var TestFunction = (string Name, object Value, string Expected) => {
                 var driver = new LINKArgumentDriver() as IArgumentDriver;
-                object[] args = { Value };
-                driver.Arguments.Add(Name, args);
+                driver.Arguments.Add(Name, Value);
 
                 var AllCalculatedVars = driver.CalculateArguments().Values.SelectMany(x => x).ToArray();
                 var ArgumentsString = new HashSet<string>(AllCalculatedVars);

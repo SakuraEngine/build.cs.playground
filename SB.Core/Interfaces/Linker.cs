@@ -9,6 +9,6 @@
     public interface ILinker
     {
         public Version Version { get; }
-        public Task<LinkResult> Link(IArgumentDriver Driver);
+        public Task<LinkResult> Link(TaskFingerprint fingerprint, IArgumentDriver Driver);
     }
 }
