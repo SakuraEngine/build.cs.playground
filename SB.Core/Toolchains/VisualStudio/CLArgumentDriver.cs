@@ -43,7 +43,6 @@ namespace SB.Core
 
         [Argument] public string SourceDependencies(string path) => VS.CheckFile(path, false) ? $"/sourceDependencies {path}" : throw new ArgumentException($"SourceDependencies value {path} is not a valid absolute path!");
 
-
         public Dictionary<ArgumentName, object?[]?> Arguments { get; } = new Dictionary<ArgumentName, object?[]?>();
         public HashSet<string> RawArguments { get; } = new HashSet<string> { "/c", "/nologo", "/cgthreads4", "/FC" };
         // /c: dont link while compiling, https://learn.microsoft.com/zh-cn/cpp/build/reference/c-compile-without-linking?view=msvc-170

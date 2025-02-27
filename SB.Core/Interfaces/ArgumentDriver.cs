@@ -95,9 +95,10 @@ namespace SB.Core
             Arguments.Add(key, value);
             return this;
         }
-        public void AddRawArgument(string Arg)
+        public IArgumentDriver AddRawArgument(string Arg)
         {
             RawArguments.Add(Arg);
+            return this;
         }
 
         public Dictionary<ArgumentName, object?[]?> Arguments { get; }

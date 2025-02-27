@@ -1,9 +1,8 @@
 ﻿using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace SB.Core
 {
+    using VS = VisualStudio;
     public struct CLDependencies
     {
         public struct DepData
@@ -20,15 +19,10 @@ namespace SB.Core
 
     public class CLCompiler : ICompiler
     {
-        public static string GetUniqueTempFileName(string File, string Hint, string Extension, IEnumerable<string> Args)
-        {
-            var SHA = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(String.Join("", Args)));
-            return $"{Path.GetFileName(File)}.{Hint}.{Convert.ToHexString(SHA)}.{Extension}";
-        }
-
         public CLCompiler(string ExePath, string TempPath, Dictionary<string, string?> Env)
         {
             VCEnvVariables = Env;
+            // TODO: THIS IS WRONG! WE NEED TO PARSE FROM CL.exe! FIX IT.
             CLVersion = Version.Parse(VCEnvVariables["VCToolsVersion"]);
             this.ExePath = ExePath;
             this.TempPath = TempPath;
@@ -49,9 +43,11 @@ namespace SB.Core
             {
                 var AllArgsDict = Driver.CalculateArguments();
                 var AllArgsList = AllArgsDict.Values.SelectMany(x => x).ToList();
-                var SourceFile = AllArgsDict["Source"][0] as string;
 
-                var cxDepFilePath = Path.Combine(TempPath, GetUniqueTempFileName(SourceFile, "cxx.compile.deps", "json", AllArgsList));
+                var SourceFile = AllArgsDict["Source"][0] as string;
+                var ObjectFile = Driver.Arguments["Object"][0] as string;
+
+                var cxDepFilePath = Path.Combine(TempPath, VS.GetUniqueTempFileName(SourceFile, "cxx.compile.deps", "json", AllArgsList));
                 Depend.OnChanged(cxDepFilePath, (Depend depend) =>
                 {
                     Process compiler = new Process
@@ -75,12 +71,13 @@ namespace SB.Core
                     var clDepFilePath = Driver.Arguments["SourceDependencies"][0] as string;
                     var clDeps = Json.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath));
 
-                    depend.OutputFiles.AddRange(clDeps.Data.Includes);
+                    depend.ExternalFiles.AddRange(clDeps.Data.Includes);
+                    depend.ExternalFiles.Add(ObjectFile);
                 }, new List<string> { SourceFile }, AllArgsList);
 
                 return new CompileResult
                 {
-                    ObjectFile = AllArgsDict["Source"][0],
+                    ObjectFile = ObjectFile,
                     PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args[0] as string : ""
                 };
             });

@@ -1,4 +1,6 @@
 using Microsoft.Extensions.FileSystemGlobbing;
+using System.Security.Cryptography;
+using System.Text;
 using System.Diagnostics;
 
 namespace SB.Core
@@ -25,7 +27,7 @@ namespace SB.Core
         public Version Version => ToolchainVersion;
         public ICompiler Compiler => CLCC;
         public IArchiver Archiver => null;
-        public ILinker Linker => null;
+        public ILinker Linker => LINK;
         public string BuildTempPath => Directory.CreateDirectory(Path.Combine(SourceLocation.BuildTempPath, this.Version.ToString())).FullName;
 
         private void FindVCVars()
@@ -88,6 +90,7 @@ namespace SB.Core
 
             ToolchainVersion = Version.Parse(VCEnvVariables["VSCMD_VER"]);
             CLCC = new CLCompiler(CLCCPath, BuildTempPath, VCEnvVariables);
+            LINK = new LINK(LINKPath, BuildTempPath, VCEnvVariables);
         }
         
         private Version ToolchainVersion;
@@ -99,10 +102,16 @@ namespace SB.Core
         public string? VCVars64Bat { get; private set; }
         public Dictionary<string, string?> VCEnvVariables { get; private set; }
         public CLCompiler CLCC { get; private set; }
+        public LINK LINK { get; private set; }
         public string CLCCPath { get; private set; }
         public string LINKPath { get; private set; }
 
         #region HelpersForTools
+        public static string GetUniqueTempFileName(string File, string Hint, string Extension, IEnumerable<string> Args)
+        {
+            var SHA = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(String.Join("", Args)));
+            return $"{Path.GetFileName(File)}.{Hint}.{Convert.ToHexString(SHA)}.{Extension}";
+        }
         public static bool CheckPath(string P, bool MustExist) => Path.IsPathFullyQualified(P) && (!MustExist || Directory.Exists(P));
         public static bool CheckFile(string P, bool MustExist) => Path.IsPathFullyQualified(P) && (!MustExist || File.Exists(P));
         public static bool IsValidRT(string what) => ValidRuntimeArguments.Contains(what);

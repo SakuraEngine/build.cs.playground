@@ -11,10 +11,10 @@ namespace SB.Core
         [JsonInclude]
         private readonly List<string> InputArgs { get; init; }
         [JsonInclude]
-        private ImmutableSortedDictionary<string, DateTime> Artifacts { get; set; }
+        private ImmutableSortedDictionary<string, DateTime> ExternalDeps { get; set; }
 
         [JsonIgnore]
-        public readonly List<string> OutputFiles { get; } = new();
+        public readonly List<string> ExternalFiles { get; } = new();
 
 
         public struct Options
@@ -25,7 +25,7 @@ namespace SB.Core
 
         public Depend() { }
 
-        public static void OnChanged(string DepFile, Action<Depend> func, List<string> Files, List<string> Args, Options? opt = null, [CallerFilePath] string CallerLoc = null)
+        public static void OnChanged(string DepFile, Action<Depend> func, IEnumerable<string> Files, IEnumerable<string> Args, Options? opt = null, [CallerFilePath] string CallerLoc = null)
         {
             Options option = opt ?? new Options { Force = false, UseSHA = false };
             if (!Path.IsPathFullyQualified(DepFile))
@@ -55,7 +55,7 @@ namespace SB.Core
                             return false;
                     }
                     // check output file mtime change
-                    foreach (var File in Deps.Artifacts)
+                    foreach (var File in Deps.ExternalDeps)
                     {
                         if (!Path.Exists(File.Key)) // deleted
                             return false;
@@ -69,8 +69,8 @@ namespace SB.Core
 
             var update = (Depend depFile) =>
             {
-                depFile.OutputFiles.Sort();
-                depFile.Artifacts = depFile.OutputFiles.Select(x => new KeyValuePair<string, DateTime>(x, Directory.GetLastWriteTimeUtc(x))).ToImmutableSortedDictionary();
+                depFile.ExternalFiles.Sort();
+                depFile.ExternalDeps = depFile.ExternalFiles.Select(x => new KeyValuePair<string, DateTime>(x, Directory.GetLastWriteTimeUtc(x))).ToImmutableSortedDictionary();
                 File.WriteAllText(DepFile, Json.Serialize(depFile));
             };
 

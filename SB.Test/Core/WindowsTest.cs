@@ -113,29 +113,6 @@ namespace SB.Test
 
             TestFunction("RTTI", true, "/GR");
             TestFunction("RTTI", false, "/GR-");
-
-            /*
-            var driver = new CLArgumentDriver() as IArgumentDriver;
-            driver.AddArgument("CppVersion", "20");
-            driver.AddArgument("Exception", true);
-            driver.AddArgument("RuntimeLibrary", "MD");
-            driver.AddArgument("Arch", Architecture.X64);
-            driver.AddArgument("SIMD", SIMDArchitecture.AVX);
-            driver.AddArgument("PDBMode", PDBMode.Embed);
-            driver.AddArgument("OptimizationLevel", OptimizationLevel.O0);
-            driver.AddArgument("FpModel", FpModel.Fast);
-            driver.AddArgument("Defines", new Dictionary<string, string?> {
-                { "A", null }, { "B", "1" }, { "C", "B" }
-            });
-            driver.AddArgument("IncludeDirs", new string[] { "D:/SakuraEngine/SimpleCXX" });
-            driver.AddArgument("RTTI", false);
-            driver.AddArgument("Source", "D:/SakuraEngine/SimpleCXX/main.cpp");
-            driver.AddArgument("Object", "D:/SakuraEngine/SimpleCXX/main.o");
-            driver.AddArgument("SourceDependencies", "D:/SakuraEngine/SimpleCXX/main.cldeps");
-            driver.AddRawArgument("/FeD:/SakuraEngine/SimpleCXX/main.exe");
-            var CTask = vs.Compiler.Compile(driver);
-            CTask.Wait(10000);
-            */
         }
 
         [TestMethod]
