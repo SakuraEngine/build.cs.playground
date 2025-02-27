@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace SB.Core
 {
@@ -22,8 +23,6 @@ namespace SB.Core
         public CLCompiler(string ExePath, string TempPath, Dictionary<string, string?> Env)
         {
             VCEnvVariables = Env;
-            // TODO: THIS IS WRONG! WE NEED TO PARSE FROM CL.exe! FIX IT.
-            CLVersion = Version.Parse(VCEnvVariables["VCToolsVersion"]);
             this.ExePath = ExePath;
             this.TempPath = TempPath;
 
@@ -33,9 +32,27 @@ namespace SB.Core
                 throw new ArgumentException($"CLCompiler: TempPath: {TempPath} is not an valid absolute path!");
             if (!Directory.Exists(TempPath))
                 throw new ArgumentException($"CLCompiler: TempPath: {TempPath} is not an existed absolute path!");
-        }
 
-        public Version Version => CLVersion;
+            this.CLVersionTask = Task.Run(() =>
+            {
+                Process compiler = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = ExePath,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    }
+                };
+                compiler.Start();
+                compiler.WaitForExit();
+                // FUCK YOU MICROSOFT THIS IS WEIRD
+                var Output = compiler.StandardError.ReadToEnd();
+                Regex pattern = new Regex(@"\d+(\.\d+)+");
+                return Version.Parse(pattern.Match(Output).Value);
+            });
+        }
 
         public async Task<CompileResult> Compile(IArgumentDriver Driver)
         {
@@ -83,7 +100,18 @@ namespace SB.Core
             });
         }
 
+        public Version Version
+        {
+            get
+            {
+                if (!CLVersionTask.IsCompleted)
+                    CLVersionTask.Wait();
+                return CLVersion;
+            }
+        }
+
         public readonly Dictionary<string, string?> VCEnvVariables;
+        private readonly Task<Version> CLVersionTask;
         private readonly Version CLVersion;
         private readonly string ExePath;
         private readonly string TempPath;

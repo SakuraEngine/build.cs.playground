@@ -26,13 +26,12 @@ namespace SB.Core
 
         public Version Version => ToolchainVersion;
         public ICompiler Compiler => CLCC;
-        public IArchiver Archiver => null;
         public ILinker Linker => LINK;
         public string BuildTempPath => Directory.CreateDirectory(Path.Combine(SourceLocation.BuildTempPath, this.Version.ToString())).FullName;
 
         private void FindVCVars()
         {
-            Console.WriteLine("Write Once");
+            Console.WriteLine($"Checking for Visual Studio {VSVersion} Toolchain...");
             var matcher = new Matcher();
             matcher.AddIncludePatterns(new[] { "./**/VC/Auxiliary/Build/vcvarsall.bat" });
             foreach (var Disk in Windows.EnumLogicalDrives())

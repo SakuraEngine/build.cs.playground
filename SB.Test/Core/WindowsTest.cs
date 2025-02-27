@@ -157,6 +157,8 @@ namespace SB.Test
             TestFunction("Output", "C:/a.lib", "/OUT:C:/a.lib");
             TestFunction("Output", "C:/b.dll", "/OUT:C:/b.dll");
             TestFunction("Output", "C:/c.exe", "/OUT:C:/c.exe");
+
+            TestFunction("WholeArchive", new string[] { "C:/a.lib", "D:/b.lib" }, "/WHOLEARCHIVE:C:/a.lib /WHOLEARCHIVE:D:/b.lib");
         }
     }
 }

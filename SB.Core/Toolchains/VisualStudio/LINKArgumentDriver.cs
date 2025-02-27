@@ -24,6 +24,8 @@ namespace SB.Core
 
         [Argument] public string Output(string output) => VS.CheckFile(output, false) ? $"/OUT:{output}" : throw new ArgumentException($"Invalid output file path {output}!");
 
+        [Argument] public string[]? WholeArchive(string[] libs) => libs.Select(lib => $"/WHOLEARCHIVE:{lib}").ToArray();
+
         public Dictionary<ArgumentName, object?[]?> Arguments { get; } = new Dictionary<ArgumentName, object?[]?>();
         public HashSet<string> RawArguments { get; } = new HashSet<string> { "/NOLOGO" };
     }
