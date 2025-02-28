@@ -4,11 +4,11 @@ using SB.Core;
 namespace SB.Test
 {
     [TestClass]
-    public sealed class Test1
+    public sealed class WindowsTest
     {
         VisualStudio vs = new VisualStudio(2022);
         
-        public Test1()
+        public WindowsTest()
         {
             vs.Initialize().Wait(10000);
         }
@@ -107,8 +107,8 @@ namespace SB.Test
             TestFunction("FpModel", FpModel.Strict, "/fp:strict");
             TestFunction("FpModel", FpModel.Precise, "/fp:precise");
 
-            TestFunction("Defines", new Dictionary<string, string?> { { "A", null }, { "B", "2" } }, "/DA /DB=2");
-            TestFunction("IncludeDirs", new string[] { "C:/", "C:/", "D:/" }, "/IC:/ /IC:/ /ID:/"); 
+            TestFunction("Defines", new ArgumentList<string> { "A", "B=2" }, "/DA /DB=2");
+            TestFunction("IncludeDirs", new ArgumentList<string> { "C:/", "C:/", "D:/" }, "/IC:/ /IC:/ /ID:/"); 
 
             TestFunction("RTTI", true, "/GR");
             TestFunction("RTTI", false, "/GR-");
@@ -149,14 +149,14 @@ namespace SB.Test
             TestFunction("TargetType", TargetType.Dynamic, "/DLL");
             TestFunction("TargetType", TargetType.Executable, "");
 
-            TestFunction("LinkDirs", new string[] { "C:/", "D:/" }, "/LIBPATH:C:/ /LIBPATH:D:/");
+            TestFunction("LinkDirs", new ArgumentList<string> { "C:/", "D:/" }, "/LIBPATH:C:/ /LIBPATH:D:/");
 
-            TestFunction("Inputs", new string[] { "C:/a.o", "D:/b.o", "D:/e.lib" }, "C:/a.o D:/b.o D:/e.lib");
+            TestFunction("Inputs", new ArgumentList<string> { "C:/a.o", "D:/b.o", "D:/e.lib" }, "C:/a.o D:/b.o D:/e.lib");
             TestFunction("Output", "C:/a.lib", "/OUT:C:/a.lib");
             TestFunction("Output", "C:/b.dll", "/OUT:C:/b.dll");
             TestFunction("Output", "C:/c.exe", "/OUT:C:/c.exe");
 
-            TestFunction("WholeArchive", new string[] { "C:/a.lib", "D:/b.lib" }, "/WHOLEARCHIVE:C:/a.lib /WHOLEARCHIVE:D:/b.lib");
+            TestFunction("WholeArchive", new ArgumentList<string> { "C:/a.lib", "D:/b.lib" }, "/WHOLEARCHIVE:C:/a.lib /WHOLEARCHIVE:D:/b.lib");
         }
     }
 }

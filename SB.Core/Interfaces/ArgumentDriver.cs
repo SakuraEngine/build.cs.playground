@@ -88,6 +88,12 @@ namespace SB.Core
             Arguments.Add(key, value);
             return this;
         }
+        
+        public IArgumentDriver AddArguments(IDictionary<ArgumentName, object>? Args)
+        {
+            Arguments.AddRange(Args);
+            return this;
+        }
 
         public IArgumentDriver AddRawArgument(string Arg)
         {

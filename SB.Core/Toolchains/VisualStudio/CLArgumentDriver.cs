@@ -19,14 +19,14 @@ namespace SB.Core
 
         [TargetSetter] public string WarningAsError(bool v) => v ? "/WX" : "";
 
-        [TargetSetter] public string OptimizationLevel(Core.OptimizationLevel opt) => $"/{opt}".Replace("/O3", "/O2").Replace("/O0", "/Od");
+        [TargetSetter] public string OptimizationLevel(SB.Core.OptimizationLevel opt) => $"/{opt}".Replace("/O3", "/O2").Replace("/O0", "/Od");
 
         // for clang it's -ffp-model=[precise|fast|strict]
         [TargetSetter] public string FpModel(FpModel v) => $"/fp:{v}".ToLowerInvariant();
 
-        [TargetSetter] public string[] Defines(Dictionary<string, string?> defines) => defines.Select(kvp => kvp.Value is null ? $"/D{kvp.Key}" : $"/D{kvp.Key}={kvp.Value}").ToArray();
+        [TargetSetter] public string[] Defines(ArgumentList<string> defines) => defines.Select(define => $"/D{define}").ToArray();
 
-        [TargetSetter] public string[]? IncludeDirs(string[] dirs) => dirs.All(x => VS.CheckPath(x, true) ? true : throw new ArgumentException($"Invalid include dir {x}!")) ? dirs.Select(dir => $"/I{dir}").ToArray() : null;
+        [TargetSetter] public string[]? IncludeDirs(ArgumentList<string> dirs) => dirs.All(x => VS.CheckPath(x, true) ? true : throw new ArgumentException($"Invalid include dir {x}!")) ? dirs.Select(dir => $"/I{dir}").ToArray() : null;
 
         [TargetSetter] public string RTTI(bool v) => v ? "/GR" : "/GR-";
 
@@ -37,7 +37,7 @@ namespace SB.Core
 
         public string Object(string path) => VS.CheckFile(path, false) ? $"/Fo{path}" : throw new ArgumentException($"Object value {path} is not a valid absolute path!");
 
-        public string PDBMode(PDBMode mode) => (mode == Core.PDBMode.Standalone) ? "/Zi" : (mode == Core.PDBMode.Embed) ? "/Z7" : "";
+        public string PDBMode(PDBMode mode) => (mode == SB.Core.PDBMode.Standalone) ? "/Zi" : (mode == SB.Core.PDBMode.Embed) ? "/Z7" : "";
 
         public string PDB(string path) => VS.CheckFile(path, false) ? $"/Fd{path}" : throw new ArgumentException($"PDB value {path} is not a valid absolute path!");
 
