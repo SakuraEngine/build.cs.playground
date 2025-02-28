@@ -9,6 +9,6 @@
     public interface ICompiler
     {
         public Version Version { get; }
-        public Task<CompileResult> Compile(TaskFingerprint fingerprint, IArgumentDriver Driver);
+        public CompileResult Compile(IArgumentDriver Driver);
     }
 }

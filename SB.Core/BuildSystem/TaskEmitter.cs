@@ -20,6 +20,9 @@ namespace SB
         public abstract bool FileFilter(string File);
         public abstract object? PerFileTask(Target target, string File);
 
+        public string Name => SelfName;
+
+        internal string SelfName = "";
         internal HashSet<KeyValuePair<string, DependencyModel>> Dependencies { get; } = new();
     }
 }

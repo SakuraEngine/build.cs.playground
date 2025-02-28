@@ -28,6 +28,7 @@ namespace SB
             if (TaskEmitters.TryGetValue(Name, out var _))
                 throw new ArgumentException($"Emitter with name {Name} already exists! Name should be unique to every emitter!");
             TaskEmitters.Add(Name, Emitter);
+            Emitter.SelfName = Name;
             return Emitter;
         }
 

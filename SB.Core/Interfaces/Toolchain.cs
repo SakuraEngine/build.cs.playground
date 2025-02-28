@@ -6,6 +6,5 @@
         public Version Version { get; }
         public ICompiler Compiler { get; }
         public ILinker Linker { get; }
-        public string BuildTempPath { get;  }
     }
 }
