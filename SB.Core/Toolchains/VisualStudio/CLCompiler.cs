@@ -81,7 +81,7 @@ namespace SB.Core
                 compiler.WaitForExit();
 
                 var clDepFilePath = Driver.Arguments["SourceDependencies"] as string;
-                var clDeps = JsonSerializer.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath), JsonContext.Default.CLDependencies);
+                var clDeps = Json.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath));
 
                 depend.ExternalFiles.AddRange(clDeps.Data.Includes);
                 depend.ExternalFiles.Add(ObjectFile);

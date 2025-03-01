@@ -6,31 +6,43 @@ namespace SB.Core
     using VS = VisualStudio;
     public class CLArgumentDriver : IArgumentDriver
     {
-        [TargetSetter] public string Exception(bool Enable) => Enable ? "/EHsc" : "/EHsc-";
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string Exception(bool Enable) => Enable ? "/EHsc" : "/EHsc-";
 
-        [TargetSetter] public string RuntimeLibrary(string what) => VS.IsValidRT(what) ? $"/{what}" : throw new ArgumentException($"Invalid argument \"{what}\" for MSVC RuntimeLibrary!");
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string RuntimeLibrary(string what) => VS.IsValidRT(what) ? $"/{what}" : throw new ArgumentException($"Invalid argument \"{what}\" for MSVC RuntimeLibrary!");
 
-        [TargetSetter] public string CppVersion(string what) => cppVersionMap.TryGetValue(what.Replace("c++", "").Replace("C++", ""), out var r) ? r : throw new ArgumentException($"Invalid argument \"{what}\" for CppVersion!");
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string CppVersion(string what) => cppVersionMap.TryGetValue(what.Replace("c++", "").Replace("C++", ""), out var r) ? r : throw new ArgumentException($"Invalid argument \"{what}\" for CppVersion!");
         public static readonly Dictionary<string, string> cppVersionMap = new Dictionary<string, string> { { "11", "/std:c++11" }, { "14", "/std:c++14" }, { "17", "/std:c++17" }, { "20", "/std:c++20" }, { "23", "/std:c++23" }, { "latest", "/std:c++latest" } };
 
-        [TargetSetter] public string SIMD(SIMDArchitecture simd) => $"/arch:{simd}".Replace("_", ".");
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string SIMD(SIMDArchitecture simd) => $"/arch:{simd}".Replace("_", ".");
 
-        [TargetSetter] public string WarningLevel(MSVCWarningLevel level) => $"/{level}";
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string WarningLevel(MSVCWarningLevel level) => $"/{level}";
 
-        [TargetSetter] public string WarningAsError(bool v) => v ? "/WX" : "";
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string WarningAsError(bool v) => v ? "/WX" : "";
 
-        [TargetSetter] public string OptimizationLevel(SB.Core.OptimizationLevel opt) => $"/{opt}".Replace("/O3", "/O2").Replace("/O0", "/Od");
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string OptimizationLevel(SB.Core.OptimizationLevel opt) => $"/{opt}".Replace("/O3", "/O2").Replace("/O0", "/Od");
 
         // for clang it's -ffp-model=[precise|fast|strict]
-        [TargetSetter] public string FpModel(FpModel v) => $"/fp:{v}".ToLowerInvariant();
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string FpModel(FpModel v) => $"/fp:{v}".ToLowerInvariant();
 
-        [TargetSetter] public string[] Defines(ArgumentList<string> defines) => defines.Select(define => $"/D{define}").ToArray();
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string[] Defines(ArgumentList<string> defines) => defines.Select(define => $"/D{define}").ToArray();
 
-        [TargetSetter] public string[]? IncludeDirs(ArgumentList<string> dirs) => dirs.All(x => VS.CheckPath(x, true) ? true : throw new ArgumentException($"Invalid include dir {x}!")) ? dirs.Select(dir => $"/I{dir}").ToArray() : null;
-
-        [TargetSetter] public string RTTI(bool v) => v ? "/GR" : "/GR-";
-
-        [TargetSetter] public string Source(string path) => VS.CheckFile(path, true) ? $"{path}" : throw new ArgumentException($"Source value {path} is not an existed absolute path!");
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string[]? IncludeDirs(ArgumentList<string> dirs) => dirs.All(x => VS.CheckPath(x, true) ? true : throw new ArgumentException($"Invalid include dir {x}!")) ? dirs.Select(dir => $"/I{dir}").ToArray() : null;
+        
+        [TargetProperty(TargetProperty.InheritBehavior)] 
+        public string RTTI(bool v) => v ? "/GR" : "/GR-";
+        
+        [TargetProperty] 
+        public string Source(string path) => VS.CheckFile(path, true) ? $"{path}" : throw new ArgumentException($"Source value {path} is not an existed absolute path!");
 
         public string Arch(Architecture arch) => archMap.TryGetValue(arch, out var r) ? r : throw new ArgumentException($"Invalid architecture \"{arch}\" for MSVC CL.exe!");
         static readonly Dictionary<Architecture, string> archMap = new Dictionary<Architecture, string> { { Architecture.X86, "" }, { Architecture.X64, "" }, { Architecture.ARM64, "" } };

@@ -6,6 +6,7 @@ using System.Text;
 using System.Runtime.InteropServices;
 using Microsoft.CodeAnalysis.Text;
 using System.Data;
+using System.Collections.Immutable;
 
 namespace SB.Generators
 {
@@ -40,7 +41,6 @@ namespace SB.Generators
     [Generator]
     public class TargetSetterGenerator : IIncrementalGenerator
     {
-        
         public void Initialize(IncrementalGeneratorInitializationContext initContext)
         {
             // define the execution pipeline here via a series of transformations:
@@ -49,7 +49,7 @@ namespace SB.Generators
             IncrementalValueProvider<Compilation> AsyncCompile = initContext.CompilationProvider;
             var MethodsProvider = AsyncCompile.Select((Compile, Cancel) =>
             {
-                List<IMethodSymbol> Methods = new List<IMethodSymbol>();
+                var Methods = new Dictionary<IMethodSymbol, AttributeData>();
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     var CL = Compile.GetTypeByMetadataName("SB.Core.CLArgumentDriver");
@@ -57,11 +57,17 @@ namespace SB.Generators
                     var AllMembers = CL.GetMembers().Concat(LINK.GetMembers());
                     foreach (var Method in AllMembers.Where(M => M.Kind == SymbolKind.Method))
                     {
-                        if (Method.GetAttributes().Any(A => A.AttributeClass.GetFullTypeName().Equals("global::SB.Core.TargetSetter")))
-                            Methods.Add(Method as IMethodSymbol);
+                        AttributeData TargetProperty = null;
+                        foreach(var A in Method.GetAttributes())
+                            TargetProperty = A.AttributeClass.GetFullTypeName().Equals("global::SB.Core.TargetProperty") ? A : null;
+
+                        if (TargetProperty != null && !Methods.Any(KVP => KVP.Key.Name == Method.Name))
+                        {
+                            Methods.Add(Method as IMethodSymbol, TargetProperty);
+                        }
                     }
                 }
-                return Methods.Distinct(new MethodSignatureComparer());
+                return Methods;
             });
             
             // generate a class that contains their values as const strings
@@ -76,30 +82,51 @@ namespace SB
     {
 ");
 
-                foreach (var Method in Methods)
+                foreach (var MethodAndProperty in Methods)
                 {
-                    // Method.ReturnType.Is
+                    var Method = MethodAndProperty.Key;
+                    var TargetProperty = MethodAndProperty.Value;
                     var Param = Method.Parameters[0];
                     var MethodName = Method.Name;
                     {
+                        bool HasFlags = TargetProperty.ConstructorArguments.Any(A => !A.Value.Equals(0));
+                        var FlagsP = HasFlags ? $"Visibility Visibility, " : "";
+                        var ArgumentsContainer = HasFlags ? "GetArgumentsContainer(Visibility)" : "FinalArguments";
+                        var PropertyP = $"params {Param.Type.GetFullTypeName()} {Param.Name}";
+
                         ITypeSymbol ElementType = null;
                         if (Param.Type.GetUnderlyingTypeIfIsArgumentList(ref ElementType))
                         {
                             sourceBuilder.Append($@"
-        public SB.Target {MethodName}(params {ElementType.GetFullTypeName()}[] {Param.Name}) {{ Arguments.GetOrAddNew<string, {Param.Type}>(""{MethodName}"").AddRange({Param.Name}); return this as SB.Target; }}
+        public SB.Target {MethodName}({FlagsP}params {ElementType.GetFullTypeName()}[] {Param.Name}) {{ {ArgumentsContainer}.GetOrAddNew<string, {Param.Type}>(""{MethodName}"").AddRange({Param.Name}); return this as SB.Target; }}
 ");
                         }
                         else
                         {
                             sourceBuilder.Append($@"
-        public SB.Target {MethodName}({Param.Type.GetFullTypeName()} {Param.Name}) {{ Arguments.Override(""{MethodName}"", {Param.Name}); return this as SB.Target; }}
+        public SB.Target {MethodName}({FlagsP}{Param.Type.GetFullTypeName()} {Param.Name}) {{ {ArgumentsContainer}.Override(""{MethodName}"", {Param.Name}); return this as SB.Target; }}
 ");
                         }
                     }
                 }
 
                 sourceBuilder.Append(@"
-        public Dictionary<string, object?> Arguments { get; } = new();
+        private Dictionary<string, object?> GetArgumentsContainer(Visibility Visibility)
+        {
+            switch (Visibility)
+            {
+                case Visibility.Public: return PublicArguments;
+                case Visibility.Private: return PrivateArguments;
+                case Visibility.Interface: return InterfaceArguments;
+            }
+            return PrivateArguments;
+        }
+
+        public IReadOnlyDictionary<string, object?> Arguments => FinalArguments;
+        internal Dictionary<string, object?> FinalArguments { get; } = new();
+        internal Dictionary<string, object?> PublicArguments { get; } = new();
+        internal Dictionary<string, object?> PrivateArguments { get; } = new();
+        internal Dictionary<string, object?> InterfaceArguments { get; } = new();
     }
 }");
                 spc.AddSource("TargetSetters.cs", SourceText.From(sourceBuilder.ToString(), Encoding.UTF8));

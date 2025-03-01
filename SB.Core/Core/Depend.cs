@@ -55,7 +55,7 @@ namespace SB.Core
         {
             if (File.Exists(DepFile))
             {
-                var Deps = JsonSerializer.Deserialize(File.ReadAllText(DepFile), JsonContext.Default.Depend);
+                var Deps = Json.Deserialize<Depend>(File.ReadAllText(DepFile));
                 // check file list change
                 if (!SortedFiles.SequenceEqual(Deps.InputFiles.Keys))
                     return false;
@@ -90,7 +90,7 @@ namespace SB.Core
             // TODO: CloseHandle seems to be very slow
             // Maybe we can make an async text writer service?
             // It will create & write all files for the process
-            File.WriteAllText(DepFile, JsonSerializer.Serialize(NewDepend, JsonContext.Default.Depend));
+            File.WriteAllText(DepFile, Json.Serialize(NewDepend));
         }
     }
 }

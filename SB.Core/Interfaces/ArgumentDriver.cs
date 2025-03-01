@@ -49,6 +49,13 @@ namespace SB.Core
         Executable
     }
 
+    public enum Visibility
+    {
+        Private,
+        Public,
+        Interface
+    }
+
     public struct CompileCommand
     {
         public string directory { get; init; }
@@ -87,7 +94,7 @@ namespace SB.Core
                 arguments = CalculateArguments().Values.SelectMany(x => x).ToList(),
                 file = Arguments["Source"] as string
             };
-            return JsonSerializer.Serialize(compile_commands);
+            return Json.Serialize(compile_commands);
         }
 
         public IArgumentDriver AddArgument(ArgumentName key, object value)
@@ -96,7 +103,7 @@ namespace SB.Core
             return this;
         }
         
-        public IArgumentDriver AddArguments(IDictionary<ArgumentName, object>? Args)
+        public IArgumentDriver AddArguments(IReadOnlyDictionary<ArgumentName, object>? Args)
         {
             Arguments.AddRange(Args);
             return this;
@@ -113,8 +120,22 @@ namespace SB.Core
     }
 
     [AttributeUsage(AttributeTargets.Method)]
-    public class TargetSetter : Attribute
+    public class TargetProperty : Attribute
     {
+        [Flags]
+        public enum PropertyFlags
+        {
+            None = 0,
+            InheritBehavior = 1
+        };
 
+        public TargetProperty(PropertyFlags Flags = PropertyFlags.None)
+        {
+            this.Flags = Flags;
+        }
+
+        public PropertyFlags Flags { get; }
+
+        public const PropertyFlags InheritBehavior = PropertyFlags.InheritBehavior;
     }
 }
