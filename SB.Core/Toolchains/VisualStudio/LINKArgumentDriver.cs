@@ -12,6 +12,8 @@ namespace SB.Core
         static readonly Dictionary<TargetType, string> typeMap = new Dictionary<TargetType, string> { { Core.TargetType.Static, "/LIB" }, { Core.TargetType.Dynamic, "/DLL" }, { Core.TargetType.Executable, "" } };
 
         [TargetSetter] public string[]? LinkDirs(ArgumentList<string> dirs) => dirs.All(x => VS.CheckPath(x, false) ? true : throw new ArgumentException($"Invalid link dir {x}!")) ? dirs.Select(dir => $"/LIBPATH:{dir}").ToArray() : null;
+        
+        [TargetSetter] public string[]? Link(ArgumentList<string> dirs) => dirs.All(x => VS.CheckPath(x, false) ? true : throw new ArgumentException($"Invalid link dir {x}!")) ? dirs.Select(dir => $"/LIBPATH:{dir}").ToArray() : null;
 
         [TargetSetter] public string[]? WholeArchive(ArgumentList<string> libs) => libs.Select(lib => $"/WHOLEARCHIVE:{lib}").ToArray();
 

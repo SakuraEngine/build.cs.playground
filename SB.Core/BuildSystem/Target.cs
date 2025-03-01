@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.FileSystemGlobbing;
 using SB.Core;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace SB
 {
@@ -27,13 +29,23 @@ namespace SB
             return this;
         }
 
-        internal void Resolve()
+        public Target PublicDependency(string TargetName)
         {
-            var GlobMatcher = new Matcher();
-            GlobMatcher.AddIncludePatterns(Globs);
-            Absolutes.AddRange(GlobMatcher.GetResultsInFullPath(Directory));
+            TargetDependencies.Add(TargetName);
+            return this;
         }
 
+        internal void Resolve()
+        {
+            if (Globs.Count != 0)
+            {
+                var GlobMatcher = new Matcher();
+                GlobMatcher.AddIncludePatterns(Globs);
+                Absolutes.AddRange(GlobMatcher.GetResultsInFullPath(Directory));
+            }
+        }
+
+        public IReadOnlySet<string> Dependencies => TargetDependencies;
         public IReadOnlySet<string> AllFiles => Absolutes;
 
         public string Name { get; }
@@ -41,5 +53,6 @@ namespace SB
         public string Directory { get; }
         private SortedSet<string> Globs = new();
         private SortedSet<string> Absolutes = new();
+        private SortedSet<string> TargetDependencies = new();
     }
 }

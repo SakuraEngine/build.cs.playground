@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 
 namespace SB.Core
 {
-    [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata)]
     [JsonSerializable(typeof(ImmutableSortedDictionary<string, DateTime>))]
     [JsonSerializable(typeof(Depend))]
     [JsonSerializable(typeof(CLDependenciesData))]

@@ -53,7 +53,7 @@ namespace SB.Core
 
         private static bool CheckDepFile(string DepFile, List<string> SortedFiles, List<string> SortedArgs)
         {
-            if (Path.Exists(DepFile))
+            if (File.Exists(DepFile))
             {
                 var Deps = JsonSerializer.Deserialize(File.ReadAllText(DepFile), JsonContext.Default.Depend);
                 // check file list change
@@ -63,19 +63,19 @@ namespace SB.Core
                 if (!SortedArgs.SequenceEqual(Deps.InputArgs))
                     return false;
                 // check input file mtime change
-                foreach (var File in Deps.InputFiles)
+                foreach (var InputFile in Deps.InputFiles)
                 {
-                    if (!Path.Exists(File.Key)) // deleted
+                    if (!File.Exists(InputFile.Key)) // deleted
                         return false;
-                    if (File.Value != Directory.GetLastWriteTimeUtc(File.Key)) // modified
+                    if (InputFile.Value != Directory.GetLastWriteTimeUtc(InputFile.Key)) // modified
                         return false;
                 }
                 // check output file mtime change
-                foreach (var File in Deps.ExternalDeps)
+                foreach (var ExternFile in Deps.ExternalDeps)
                 {
-                    if (!Path.Exists(File.Key)) // deleted
+                    if (!File.Exists(ExternFile.Key)) // deleted
                         return false;
-                    if (File.Value != Directory.GetLastWriteTimeUtc(File.Key)) // modified
+                    if (ExternFile.Value != Directory.GetLastWriteTimeUtc(ExternFile.Key)) // modified
                         return false;
                 }
                 return true;

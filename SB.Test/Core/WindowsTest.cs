@@ -26,7 +26,7 @@ namespace SB.Test
         [TestMethod]
         public void TestToolset()
         {
-            Assert.IsTrue(Path.Exists(vs.VCVars64Bat));
+            Assert.IsTrue(Path.Exists(vs.VCVarsAllBat));
             Assert.IsTrue(vs.Compiler.Version.Build > 0);
             Assert.IsTrue(vs.Version.Build > 0);
         }

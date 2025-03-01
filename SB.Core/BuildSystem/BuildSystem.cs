@@ -56,9 +56,11 @@ namespace SB
                     };
                     var EmitterTask = TaskManager.Run(Fingerprint, () =>
                     {
-                        Emitter.AwaitPerTargetDependencies(Target).Wait();
-                        var Result = Emitter.PerTargetTask(Target);
                         List<Task> FileTasks = new (Target.AllFiles.Count);
+                        Emitter.AwaitExternalTargetDependencies(Target).Wait();
+                        Emitter.AwaitPerTargetDependencies(Target).Wait();
+                        
+                        var Result = Emitter.PerTargetTask(Target);
                         foreach (var File in Target.AllFiles)
                         {
                             if (!Emitter.FileFilter(File))
@@ -86,6 +88,27 @@ namespace SB
             Task.WaitAll(EmitterTasks.Values);
         }
 
+        private static async Task AwaitExternalTargetDependencies(this TaskEmitter Emitter, Target Target)
+        {
+            foreach (var DepTarget in Target.Dependencies)
+            {
+                // check target is existed
+                if (!AllTargets.TryGetValue(DepTarget, out var _))
+                    throw new ArgumentException($"TargetEmitter {Emitter.Name}: Target {Target.Name} dependes on {DepTarget}, but it seems not to exist!");
+
+                foreach (var DepEmitter in Emitter.Dependencies.Where(KVP => KVP.Value.Equals(DependencyModel.ExternalTarget)))
+                {
+                    TaskFingerprint Fingerprint = new TaskFingerprint
+                    {
+                        TargetName = DepTarget,
+                        File = "",
+                        TaskName = DepEmitter.Key
+                    };
+                    await TaskManager.AwaitFingerprint(Fingerprint);
+                }
+            }
+        }
+        
         private static async Task AwaitPerTargetDependencies(this TaskEmitter Emitter, Target Target)
         {
             foreach (var Dependency in Emitter.Dependencies.Where(KVP => KVP.Value.Equals(DependencyModel.PerTarget)))

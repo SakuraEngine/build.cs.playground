@@ -5,7 +5,8 @@ namespace SB
     public enum DependencyModel
     {
         PerTarget,
-        PerFile
+        PerFile,
+        ExternalTarget
     }
 
     public abstract class TaskEmitter
