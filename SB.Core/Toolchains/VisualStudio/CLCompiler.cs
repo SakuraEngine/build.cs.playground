@@ -1,21 +1,23 @@
 ﻿using System.Diagnostics;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace SB.Core
 {
     using VS = VisualStudio;
+    public struct CLDependenciesData
+    {
+        public string Source { get; set; }
+        public string ProvidedModule { get; set; }
+        public string[] Includes { get; set; }
+        public string[] ImportedModules { get; set; }
+        public string[] ImportedHeaderUnits { get; set; }
+    }
+
     public struct CLDependencies
     {
-        public struct DepData
-        {
-            public string Source { get; set; }
-            public string ProvidedModule { get; set; }
-            public string[] Includes { get; set; }
-            public string[] ImportedModules { get; set; }
-            public string[] ImportedHeaderUnits { get; set; }
-        }
         public Version Version { get; set; }
-        public DepData Data { get; set; }
+        public CLDependenciesData Data { get; set; }
     }
 
     public class CLCompiler : ICompiler
@@ -79,7 +81,7 @@ namespace SB.Core
                 compiler.WaitForExit();
 
                 var clDepFilePath = Driver.Arguments["SourceDependencies"] as string;
-                var clDeps = Json.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath));
+                var clDeps = JsonSerializer.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath), JsonContext.Default.CLDependencies);
 
                 depend.ExternalFiles.AddRange(clDeps.Data.Includes);
                 depend.ExternalFiles.Add(ObjectFile);

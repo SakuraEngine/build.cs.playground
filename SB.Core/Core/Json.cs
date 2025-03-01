@@ -1,16 +1,17 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SB.Core
 {
-    public static class Json
+    [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata)]
+    [JsonSerializable(typeof(ImmutableSortedDictionary<string, DateTime>))]
+    [JsonSerializable(typeof(Depend))]
+    [JsonSerializable(typeof(CLDependenciesData))]
+    [JsonSerializable(typeof(CLDependencies))]
+    internal partial class JsonContext : JsonSerializerContext
     {
-        private static JsonSerializerOptions serOpt = new JsonSerializerOptions
-        {
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        };
 
-        public static string Serialize<TValue>(TValue value) => JsonSerializer.Serialize(value, serOpt);
-        public static TValue? Deserialize<TValue>(string json) => JsonSerializer.Deserialize<TValue?>(json);
     }
 }

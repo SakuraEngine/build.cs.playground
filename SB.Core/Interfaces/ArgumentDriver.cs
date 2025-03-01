@@ -49,6 +49,13 @@ namespace SB.Core
         Executable
     }
 
+    public struct CompileCommand
+    {
+        public string directory { get; init; }
+        public List<string> arguments { get; init; }
+        public string file { get; init; }
+    }
+
     public interface IArgumentDriver
     {
         public Dictionary<ArgumentName, string[]> CalculateArguments()
@@ -74,13 +81,13 @@ namespace SB.Core
 
         public string CompileCommands(string directory)
         {
-            dynamic compile_commands = new
+            CompileCommand compile_commands = new CompileCommand
             {
                 directory = directory,
-                arguments = CalculateArguments(),
-                file = Arguments["Source"]
+                arguments = CalculateArguments().Values.SelectMany(x => x).ToList(),
+                file = Arguments["Source"] as string
             };
-            return Json.Serialize(compile_commands);
+            return JsonSerializer.Serialize(compile_commands);
         }
 
         public IArgumentDriver AddArgument(ArgumentName key, object value)

@@ -115,6 +115,6 @@ namespace SB
         }
 
         private static Dictionary<string, TaskEmitter> TaskEmitters = new();
-        private static ConcurrentDictionary<string, Target> AllTargets { get; } = new();
+        private static Dictionary<string, Target> AllTargets { get; } = new();
     }
 }

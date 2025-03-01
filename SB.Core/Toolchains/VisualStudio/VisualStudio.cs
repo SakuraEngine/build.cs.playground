@@ -6,6 +6,9 @@ namespace SB.Core
 {
     public partial class VisualStudio : IToolchain
     {
+        // https://blog.pcitron.fr/2022/01/04/dont-use-vcvarsall-vsdevcmd/
+        public bool FastFind => VSVersion == 2022;
+
         public VisualStudio(int VSVersion = 2022, Architecture? HostArch = null, Architecture? TargetArch = null)
         {
             this.VSVersion = VSVersion;
@@ -32,16 +35,44 @@ namespace SB.Core
         {
             Console.WriteLine($"Checking for Visual Studio {VSVersion} Toolchain...");
             var matcher = new Matcher();
-            matcher.AddIncludePatterns(new[] { "./**/VC/Auxiliary/Build/vcvarsall.bat" });
+            if (FastFind)
+            {
+                matcher.AddIncludePatterns(new[] { "./*/Tools/vsdevcmd/ext/vcvars.bat" });
+                matcher.AddIncludePatterns(new[] { "./*/Tools/vsdevcmd/core/winsdk.bat" });
+            }
+            else
+            {
+                matcher.AddIncludePatterns(new[] { "./**/VC/Auxiliary/Build/vcvarsall.bat" });
+            }
             foreach (var Disk in Windows.EnumLogicalDrives())
             {
+                bool FoundVS = false;
                 var VersionPostfix = (VSVersion == 2022) ? "/2022" : "";
                 var searchDirectory = $"{Disk}:/Program Files/Microsoft Visual Studio{VersionPostfix}";
                 IEnumerable<string> matchingFiles = matcher.GetResultsInFullPath(searchDirectory);
                 foreach (string file in matchingFiles)
                 {
-                    VCVarsAllBat = file;
-                    VCVars64Bat = file.Replace("vcvarsall", "vcvars64");
+                    var FileName = Path.GetFileName(file);
+                    switch (FileName)
+                    {
+                        case "vcvarsall.bat":
+                            FoundVS = true;
+                            VCVarsAllBat = file;
+                            break;
+                        case "vcvars.bat":
+                            FoundVS = true;
+                            VCVarsBat = file;
+                            break;
+                        case "winsdk.bat":
+                            FoundVS = true;
+                            WindowsSDKBat = file;
+                            break;
+                    }
+                }
+                if (FoundVS)
+                {
+                    VSInstallDir = searchDirectory;
+                    break;
                 }
             }
         }
@@ -49,16 +80,35 @@ namespace SB.Core
         static readonly Dictionary<Architecture, string> archStringMap = new Dictionary<Architecture, string> { { Architecture.X86, "x86" }, { Architecture.X64, "x64" }, { Architecture.ARM64, "arm64" } };
         private void RunVCVars()
         {
-            string ArchString = (TargetArch == HostArch) ? archStringMap[TargetArch] : $"{archStringMap[HostArch]}_{archStringMap[TargetArch]}";
             var oldEnvPath = Path.Combine(Path.GetTempPath(), $"vcvars_{VSVersion}_prev_{HostArch}_{TargetArch}.txt");
             var newEnvPath = Path.Combine(Path.GetTempPath(), $"vcvars_{VSVersion}_post_{HostArch}_{TargetArch}.txt");
 
-            Process cmd = new Process();
-            cmd.StartInfo.FileName = "cmd.exe";
-            cmd.StartInfo.RedirectStandardInput = false;
-            cmd.StartInfo.CreateNoWindow = true;
-            cmd.StartInfo.UseShellExecute = false;
-            cmd.StartInfo.Arguments = $"/c set > \"{oldEnvPath}\" && \"{VCVarsAllBat}\" {ArchString} && set > \"{newEnvPath}\"";
+            Process cmd = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    RedirectStandardInput = false,
+                    RedirectStandardOutput = false,
+                    RedirectStandardError = false,
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                }
+            };
+            if (FastFind)
+            {
+                var SetInclude = "set INCLUDE=%__VSCMD_VCVARS_INCLUDE%%__VSCMD_WINSDK_INCLUDE%%__VSCMD_NETFX_INCLUDE%%INCLUDE%";
+                cmd.StartInfo.Environment.Add("VSCMD_ARG_HOST_ARCH", archStringMap[HostArch]);
+                cmd.StartInfo.Environment.Add("VSCMD_ARG_TGT_ARCH", archStringMap[TargetArch]);
+                cmd.StartInfo.Environment.Add("VSCMD_ARG_APP_PLAT", "Desktop");
+                cmd.StartInfo.Environment.Add("VSINSTALLDIR", VSInstallDir);
+                cmd.StartInfo.Arguments = $"/c set > \"{oldEnvPath}\" && \"{VCVarsBat}\" && \"{WindowsSDKBat}\" && {SetInclude} && set > \"{newEnvPath}\"";
+            }
+            else
+            {
+                string ArchString = (TargetArch == HostArch) ? archStringMap[TargetArch] : $"{archStringMap[HostArch]}_{archStringMap[TargetArch]}";
+                cmd.StartInfo.Arguments = $"/c set > \"{oldEnvPath}\" && \"{VCVarsAllBat}\" {ArchString} && set > \"{newEnvPath}\"";
+            }
             cmd.Start();
             cmd.WaitForExit();
 
@@ -96,8 +146,11 @@ namespace SB.Core
         public readonly Architecture HostArch;
         public readonly Architecture TargetArch;
 
+        public string? VSInstallDir { get; private set; }
         public string? VCVarsAllBat { get; private set; }
-        public string? VCVars64Bat { get; private set; }
+        public string? VCVarsBat { get; private set; }
+        public string? WindowsSDKBat { get; private set; }
+
         public Dictionary<string, string?> VCEnvVariables { get; private set; }
         public CLCompiler CLCC { get; private set; }
         public LINK LINK { get; private set; }

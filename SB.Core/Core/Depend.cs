@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SB.Core
@@ -7,11 +9,11 @@ namespace SB.Core
     public struct Depend
     {
         [JsonInclude]
-        private readonly ImmutableSortedDictionary<string, DateTime>? InputFiles { get; init; }
+        internal readonly ImmutableSortedDictionary<string, DateTime>? InputFiles { get; init; }
         [JsonInclude]
-        private readonly List<string>? InputArgs { get; init; }
+        internal readonly List<string>? InputArgs { get; init; }
         [JsonInclude]
-        private ImmutableSortedDictionary<string, DateTime>? ExternalDeps { get; set; }
+        internal ImmutableSortedDictionary<string, DateTime>? ExternalDeps { get; set; }
 
         [JsonIgnore]
         public readonly List<string> ExternalFiles { get; } = new();
@@ -36,54 +38,59 @@ namespace SB.Core
 
             var SortedFiles = Files?.ToList() ?? new(); SortedFiles.Sort();
             var SortedArgs = Args?.ToList() ?? new(); SortedArgs.Sort();
-            var check = () => {
-                if (Path.Exists(DepFile))
-                {
-                    var Deps = Json.Deserialize<Depend>(File.ReadAllText(DepFile));
-                    // check file list change
-                    if (!SortedFiles.SequenceEqual(Deps.InputFiles.Keys))
-                        return false;
-                    // check arg list change
-                    if (!SortedArgs.SequenceEqual(Deps.InputArgs))
-                        return false;
-                    // check input file mtime change
-                    foreach (var File in Deps.InputFiles)
-                    {
-                        if (!Path.Exists(File.Key)) // deleted
-                            return false;
-                        if (File.Value != Directory.GetLastWriteTimeUtc(File.Key)) // modified
-                            return false;
-                    }
-                    // check output file mtime change
-                    foreach (var File in Deps.ExternalDeps)
-                    {
-                        if (!Path.Exists(File.Key)) // deleted
-                            return false;
-                        if (File.Value != Directory.GetLastWriteTimeUtc(File.Key)) // modified
-                            return false;
-                    }
-                    return true;
-                }
-                return false;
-            };
 
-            var update = (Depend depFile) =>
+            if (!CheckDepFile(DepFile, SortedFiles, SortedArgs))
             {
-                depFile.ExternalFiles.Sort();
-                depFile.ExternalDeps = depFile.ExternalFiles.Select(x => new KeyValuePair<string, DateTime>(x, Directory.GetLastWriteTimeUtc(x))).ToImmutableSortedDictionary();
-                File.WriteAllText(DepFile, Json.Serialize(depFile));
-            };
-
-            if (!check())
-            {
-                Depend depFile = new Depend
+                Depend NewDepend = new Depend
                 {
                     InputFiles = SortedFiles.Select(x => new KeyValuePair<string, DateTime>(x, Directory.GetLastWriteTimeUtc(x))).ToImmutableSortedDictionary(),
                     InputArgs = SortedArgs
                 };
-                func(depFile);
-                update(depFile);
+                func(NewDepend);
+                UpdateDepFile(NewDepend, DepFile);
             }
+        }
+
+        private static bool CheckDepFile(string DepFile, List<string> SortedFiles, List<string> SortedArgs)
+        {
+            if (Path.Exists(DepFile))
+            {
+                var Deps = JsonSerializer.Deserialize(File.ReadAllText(DepFile), JsonContext.Default.Depend);
+                // check file list change
+                if (!SortedFiles.SequenceEqual(Deps.InputFiles.Keys))
+                    return false;
+                // check arg list change
+                if (!SortedArgs.SequenceEqual(Deps.InputArgs))
+                    return false;
+                // check input file mtime change
+                foreach (var File in Deps.InputFiles)
+                {
+                    if (!Path.Exists(File.Key)) // deleted
+                        return false;
+                    if (File.Value != Directory.GetLastWriteTimeUtc(File.Key)) // modified
+                        return false;
+                }
+                // check output file mtime change
+                foreach (var File in Deps.ExternalDeps)
+                {
+                    if (!Path.Exists(File.Key)) // deleted
+                        return false;
+                    if (File.Value != Directory.GetLastWriteTimeUtc(File.Key)) // modified
+                        return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private static void UpdateDepFile(Depend NewDepend, string DepFile)
+        {
+            NewDepend.ExternalFiles.Sort();
+            NewDepend.ExternalDeps = NewDepend.ExternalFiles.Select(x => new KeyValuePair<string, DateTime>(x, Directory.GetLastWriteTimeUtc(x))).ToImmutableSortedDictionary();
+            // TODO: CloseHandle seems to be very slow
+            // Maybe we can make an async text writer service?
+            // It will create & write all files for the process
+            File.WriteAllText(DepFile, JsonSerializer.Serialize(NewDepend, JsonContext.Default.Depend));
         }
     }
 }
