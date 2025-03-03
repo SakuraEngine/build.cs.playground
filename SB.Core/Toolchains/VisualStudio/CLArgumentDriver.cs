@@ -6,30 +6,30 @@ namespace SB.Core
     using VS = VisualStudio;
     public class CLArgumentDriver : IArgumentDriver
     {
-        [TargetProperty(TargetProperty.InheritBehavior)] 
+        [TargetProperty] 
         public string Exception(bool Enable) => Enable ? "/EHsc" : "/EHsc-";
 
-        [TargetProperty(TargetProperty.InheritBehavior)] 
+        [TargetProperty] 
         public string RuntimeLibrary(string what) => VS.IsValidRT(what) ? $"/{what}" : throw new ArgumentException($"Invalid argument \"{what}\" for MSVC RuntimeLibrary!");
 
-        [TargetProperty(TargetProperty.InheritBehavior)] 
+        [TargetProperty] 
         public string CppVersion(string what) => cppVersionMap.TryGetValue(what.Replace("c++", "").Replace("C++", ""), out var r) ? r : throw new ArgumentException($"Invalid argument \"{what}\" for CppVersion!");
         public static readonly Dictionary<string, string> cppVersionMap = new Dictionary<string, string> { { "11", "/std:c++11" }, { "14", "/std:c++14" }, { "17", "/std:c++17" }, { "20", "/std:c++20" }, { "23", "/std:c++23" }, { "latest", "/std:c++latest" } };
 
-        [TargetProperty(TargetProperty.InheritBehavior)] 
+        [TargetProperty] 
         public string SIMD(SIMDArchitecture simd) => $"/arch:{simd}".Replace("_", ".");
 
-        [TargetProperty(TargetProperty.InheritBehavior)] 
+        [TargetProperty] 
         public string WarningLevel(MSVCWarningLevel level) => $"/{level}";
 
-        [TargetProperty(TargetProperty.InheritBehavior)] 
+        [TargetProperty] 
         public string WarningAsError(bool v) => v ? "/WX" : "";
 
-        [TargetProperty(TargetProperty.InheritBehavior)] 
+        [TargetProperty] 
         public string OptimizationLevel(SB.Core.OptimizationLevel opt) => $"/{opt}".Replace("/O3", "/O2").Replace("/O0", "/Od");
 
         // for clang it's -ffp-model=[precise|fast|strict]
-        [TargetProperty(TargetProperty.InheritBehavior)] 
+        [TargetProperty] 
         public string FpModel(FpModel v) => $"/fp:{v}".ToLowerInvariant();
 
         [TargetProperty(TargetProperty.InheritBehavior)] 
@@ -38,7 +38,7 @@ namespace SB.Core
         [TargetProperty(TargetProperty.InheritBehavior)] 
         public string[]? IncludeDirs(ArgumentList<string> dirs) => dirs.All(x => VS.CheckPath(x, true) ? true : throw new ArgumentException($"Invalid include dir {x}!")) ? dirs.Select(dir => $"/I{dir}").ToArray() : null;
         
-        [TargetProperty(TargetProperty.InheritBehavior)] 
+        [TargetProperty] 
         public string RTTI(bool v) => v ? "/GR" : "/GR-";
         
         [TargetProperty] 

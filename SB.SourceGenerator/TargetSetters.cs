@@ -54,7 +54,10 @@ namespace SB.Generators
                 {
                     var CL = Compile.GetTypeByMetadataName("SB.Core.CLArgumentDriver");
                     var LINK = Compile.GetTypeByMetadataName("SB.Core.LINKArgumentDriver");
-                    var AllMembers = CL.GetMembers().Concat(LINK.GetMembers());
+                    var Deps = Compile.GetTypeByMetadataName("SB.TargetDependArgumentDriver");
+                    var AllMembers = Deps.GetMembers()
+                        .Concat(CL.GetMembers())
+                        .Concat(LINK.GetMembers());
                     foreach (var Method in AllMembers.Where(M => M.Kind == SymbolKind.Method))
                     {
                         AttributeData TargetProperty = null;
@@ -103,6 +106,8 @@ namespace SB
                         }
                         else
                         {
+                            if (HasFlags)
+                                throw new Exception($"{MethodName} fails: Single param setters should not have inherit behavior!");
                             sourceBuilder.Append($@"
         public SB.Target {MethodName}({FlagsP}{Param.Type.GetFullTypeName()} {Param.Name}) {{ {ArgumentsContainer}.Override(""{MethodName}"", {Param.Name}); return this as SB.Target; }}
 ");

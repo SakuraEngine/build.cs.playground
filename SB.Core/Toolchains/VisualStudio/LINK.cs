@@ -25,7 +25,7 @@ namespace SB.Core
             var cxDepFilePath = Driver.Arguments["DependFile"] as string;
             Depend.OnChanged(cxDepFilePath, (Depend depend) =>
             {
-                Process compiler = new Process
+                Process linker = new Process
                 {
                     StartInfo = new ProcessStartInfo
                     {
@@ -38,10 +38,10 @@ namespace SB.Core
                 };
                 foreach (var kvp in VCEnvVariables)
                 {
-                    compiler.StartInfo.Environment.Add(kvp.Key, kvp.Value);
+                    linker.StartInfo.Environment.Add(kvp.Key, kvp.Value);
                 }
-                compiler.Start();
-                compiler.WaitForExit();
+                linker.Start();
+                linker.WaitForExit();
 
                 depend.ExternalFiles.AddRange(OutputFile);
             }, new List<string>(InputFiles), AllArgsList);

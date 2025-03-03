@@ -1,11 +1,21 @@
 ﻿using Microsoft.Extensions.FileSystemGlobbing;
 using SB.Core;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace SB
 {
+    public class TargetDependArgumentDriver : IArgumentDriver
+    {
+        [TargetProperty(TargetProperty.InheritBehavior)]
+        public ArgumentList<string> Depend(ArgumentList<string> Deps) => Deps;
+
+        public Dictionary<string, object?> Arguments { get; }
+        public HashSet<string> RawArguments { get; }
+    }
+
     public class Target : TargetSetters
     {
         internal Target(string Name, [CallerFilePath] string Location = null)
@@ -29,13 +39,72 @@ namespace SB
             return this;
         }
 
-        public Target Depend(string TargetName)
+        public Target Depend(string DependName)
         {
-            TargetDependencies.Add(TargetName);
+            if (DependName.Contains("@"))
+                PackageTargetDependencies.Add(DependName);
+            else
+                TargetDependencies.Add(DependName);
             return this;
         }
 
-        internal void Resolve()
+        public Target Require(string Package, PackageConfig Config)
+        {
+            if (PackageDependencies.TryGetValue(Package, out var _))
+                throw new ArgumentException($"Target {Name}: Required package {Package} is already required!");
+            PackageDependencies.Add(Package, Config);
+            return this;
+        }
+
+        public Target BeforeBuild(Action<Target> Action)
+        {
+            BeforeBuildActions.Add(Action);
+            return this;
+        }
+
+        private bool PackagesResolved = false;
+        internal void ResolvePackages(ref Dictionary<string, Target> OutPackageTargets)
+        {
+            if (!PackagesResolved)
+            {
+                foreach (var KVP in PackageDependencies)
+                {
+                    var PackageName = KVP.Key;
+                    var PackageConfig = KVP.Value;
+                    var Package = BuildSystem.GetPackage(PackageName);
+                    if (Package == null)
+                        throw new ArgumentException($"Target {Name}: Required package {PackageName} does not exist!");
+                
+                    foreach (var PackageTargetDependency in PackageTargetDependencies)
+                    {
+                        var Splitted = PackageTargetDependency.Split("@");
+                        if (Splitted[0] == PackageName)
+                        {
+                            var PackageTarget = Package.AcquireTarget(Splitted[1], PackageConfig);
+                            {
+                                PackageTarget.ResolvePackages(ref OutPackageTargets);
+                                OutPackageTargets.TryAdd(PackageTargetDependency, PackageTarget);
+                            }
+                            TargetDependencies.Add(PackageTargetDependency);
+                        }
+                    }
+                }
+                PackagesResolved = true;
+            }
+        }
+
+        internal void ResolveDependencies() => RecursiveMergeDependencies(TargetDependencies, TargetDependencies.ToHashSet());
+        internal void RecursiveMergeDependencies(ISet<string> To, IReadOnlySet<string> DepNames)
+        {
+            foreach (var DepName in DepNames)
+            {
+                Target DepTarget = BuildSystem.GetTarget(DepName);
+                To.AddRange(DepTarget.Dependencies);
+                RecursiveMergeDependencies(To, DepTarget.Dependencies);
+            }
+        }
+
+        internal void ResolveArguments()
         {
             // Files
             if (Globs.Count != 0)
@@ -47,17 +116,11 @@ namespace SB
             // Arguments
             MergeArguments(FinalArguments, PublicArguments);
             MergeArguments(FinalArguments, PrivateArguments);
-            RecursiveMergeDependencies(FinalArguments, Dependencies);
-        }
-
-        internal void RecursiveMergeDependencies(Dictionary<string, object?> To, IReadOnlySet<string> DepNames)
-        {
-            foreach (var DepName in DepNames)
+            foreach (var DepName in Dependencies)
             {
                 Target DepTarget = BuildSystem.GetTarget(DepName);
-                MergeArguments(To, DepTarget.PublicArguments);
-                MergeArguments(To, DepTarget.InterfaceArguments);
-                RecursiveMergeDependencies(To, DepTarget.Dependencies);
+                MergeArguments(FinalArguments, DepTarget.PublicArguments);
+                MergeArguments(FinalArguments, DepTarget.InterfaceArguments);
             }
         }
 
@@ -78,8 +141,9 @@ namespace SB
                 else
                 {
                     if (To.TryGetValue(K, out var Existed))
-                        throw new ArgumentException("MergeArguments: This is a unique argument, we should never merge it!");
-                    To.Add(K, V);
+                    {
+                        To.Add(K, V);
+                    }
                 }
             }
         }
@@ -90,8 +154,18 @@ namespace SB
         public string Name { get; }
         public string Location { get; }
         public string Directory { get; }
+        #region Files
         private SortedSet<string> Globs = new();
         private SortedSet<string> Absolutes = new();
+        #endregion
+        #region Dependencies
+        private SortedDictionary<string, PackageConfig> PackageDependencies = new();
         private SortedSet<string> TargetDependencies = new();
+        private SortedSet<string> PackageTargetDependencies = new();
+        #endregion
+        #region Package
+        public bool IsFromPackage { get; internal set; } = false;
+        #endregion
+        internal List<Action<Target>> BeforeBuildActions = new();
     }
 }
