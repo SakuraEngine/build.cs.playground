@@ -136,7 +136,7 @@ namespace SB
                     if (To.TryGetValue(K, out var Existed))
                         (Existed as IArgumentList).Merge(ArgList);
                     else
-                        To.Add(K, ArgList);
+                        To.Add(K, ArgList.Copy());
                 }
                 else
                 {
