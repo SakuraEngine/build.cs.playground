@@ -51,7 +51,7 @@ namespace SB
             Dictionary<string, Target> PackageTargets = new();
             foreach (var TargetKVP in AllTargets)
                 TargetKVP.Value.ResolvePackages(ref PackageTargets);
-            AllTargets.AddRange(PackageTargets);
+            
 
             foreach (var TargetKVP in AllTargets)
                 TargetKVP.Value.ResolveDependencies();

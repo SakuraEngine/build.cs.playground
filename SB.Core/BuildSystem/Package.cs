@@ -23,8 +23,32 @@ namespace SB.Core
             return this;
         }
 
+        // TODO:
+        // 不知道为什么，这个包在前面加的性能特别好，延迟到 Build 时候用 Installer 后插入就不行了
+        // 怀疑是影响了构建的顺序，后插入导致入队非常靠后
+        // 而这个包几乎被测试例子的所有 EXE 引用，所以就很慢
+        // 后面要考虑排序，其次要看一看轮转更加高速的协程方案
+        private Target FUCK;
+        public Package Test()
+        {
+            var PakSourceFile = "D:/SakuraEngine/SimpleCXX/package.cpp";
+            FUCK = new Target($"Hello10@Hello")
+                .TargetType(TargetType.Static)
+                .CppVersion("20")
+                .Exception(true)
+                .RuntimeLibrary("MD")
+                   .Defines(Visibility.Public, $"A1=A1000")
+                   .Defines(Visibility.Public, $"B1=A1000")
+                   .Defines(Visibility.Public, $"C1=A1000")
+                .AddFiles(PakSourceFile);
+            FUCK.IsFromPackage = true;
+            BuildSystem.AllTargets.Add("Hello10@Hello", FUCK);
+            return this;
+        }
+
         internal Target AcquireTarget(string TargetName, PackageConfig Config)
         {
+            return FUCK;
             Dictionary<PackageConfig, Target> TargetPermutations;
             if (!AcquiredTargets.TryGetValue(TargetName, out TargetPermutations))
             {
