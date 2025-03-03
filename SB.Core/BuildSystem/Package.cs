@@ -29,7 +29,7 @@ namespace SB.Core
             if (!AcquiredTargets.TryGetValue(TargetName, out TargetPermutations))
             {
                 TargetPermutations = new();
-                AcquiredTargets.Add(TargetName, new());
+                AcquiredTargets.Add(TargetName, TargetPermutations);
             }
 
             if (TargetPermutations.TryGetValue(Config, out var Permutation))
