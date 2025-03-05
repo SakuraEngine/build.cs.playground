@@ -2,6 +2,7 @@
 using SB.Core;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace SB
@@ -51,7 +52,7 @@ namespace SB
             Dictionary<string, Target> PackageTargets = new();
             foreach (var TargetKVP in AllTargets)
                 TargetKVP.Value.ResolvePackages(ref PackageTargets);
-            
+            AllTargets.AddRange(PackageTargets);
 
             foreach (var TargetKVP in AllTargets)
                 TargetKVP.Value.ResolveDependencies();
@@ -59,11 +60,9 @@ namespace SB
                 TargetKVP.Value.ResolveArguments();
 
             Dictionary<TaskFingerprint, Task> EmitterTasks = new(TaskEmitters.Count * AllTargets.Count);
-            foreach (var TargetKVP in AllTargets)
+            var SortedTargets = AllTargets.Values.OrderBy(T => T.Dependencies.Count).ToList();
+            foreach (var Target in SortedTargets)
             {
-                var TargetName = TargetKVP.Key;
-                var Target = TargetKVP.Value;
-
                 Target.CallAllActions(Target.BeforeBuildActions);
 
                 // emitters
@@ -73,7 +72,7 @@ namespace SB
                     var Emitter = EmitterKVP.Value;
                     TaskFingerprint Fingerprint = new TaskFingerprint
                     {
-                        TargetName = TargetName,
+                        TargetName = Target.Name,
                         File = "",
                         TaskName = EmitterName
                     };
@@ -92,7 +91,7 @@ namespace SB
                             Emitter.AwaitPerFileDependencies(Target, File).Wait();
                             TaskFingerprint FileFingerprint = new TaskFingerprint
                             {
-                                TargetName = TargetName,
+                                TargetName = Target.Name,
                                 File = File,
                                 TaskName = EmitterName
                             };

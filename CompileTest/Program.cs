@@ -4,6 +4,7 @@ using System.Diagnostics;
 
 var LibSourceFile = "D:/SakuraEngine/SimpleCXX/lib.cpp";
 var ExeSourceFile = "D:/SakuraEngine/SimpleCXX/main.cpp";
+var PakSourceFile = "D:/SakuraEngine/SimpleCXX/package.cpp";
 BuildSystem.TempPath = Directory.CreateDirectory("D:/SakuraEngine/SimpleCXX/.sb").FullName;
 BuildSystem.BuildPath = Directory.CreateDirectory("D:/SakuraEngine/SimpleCXX/sbuild").FullName;
 BuildSystem.PackageTempPath = Directory.CreateDirectory("D:/SakuraEngine/SimpleCXX/.pkgs/.sb").FullName;
@@ -18,9 +19,8 @@ BuildSystem.AddTaskEmitter("Cpp.Link", new CppLinkEmitter(VS))
     .AddDependency("Cpp.Link", DependencyModel.ExternalTarget)
     .AddDependency("Cpp.Compile", DependencyModel.PerTarget);
 
+
 var Target1 = BuildSystem.Package($"Hello10")
-    .Test();
-/*
     .AddTarget("Hello", (Target Target, PackageConfig Config) =>
     {
         Target.TargetType(TargetType.Static)
@@ -32,12 +32,10 @@ var Target1 = BuildSystem.Package($"Hello10")
            .Defines(Visibility.Public, $"C1=A1000")
            .AddFiles(PakSourceFile);
     });
-*/
 
 for (int i = 0; i < 1000; i++)
 {
     int Mod = i % 5;
-
 
     var Target2 = BuildSystem.Target($"Hello2{i}")
         .TargetType(TargetType.Static)

@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SB.Core", "SB.Core\SB.Core.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SB.Test", "SB.Test\SB.Test.csproj", "{EAB7100E-7901-46E4-947D-C8F1BFF69A92}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{244B2EF6-ED97-4498-ACDA-FB547896C907}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompileTest", "CompileTest\CompileTest.csproj", "{244B2EF6-ED97-4498-ACDA-FB547896C907}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SB.SourceGenerator", "SB.SourceGenerator\SB.SourceGenerator.csproj", "{4AD28B38-89EB-4C76-B33C-7D9B4537E918}"
 EndProject
