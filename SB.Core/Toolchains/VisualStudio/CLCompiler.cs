@@ -57,7 +57,7 @@ namespace SB.Core
             var AllArgsDict = Driver.CalculateArguments();
             var AllArgsList = AllArgsDict.Values.SelectMany(x => x).ToList();
 
-            var SourceFile = AllArgsDict["Source"][0] as string;
+            var SourceFile = Driver.Arguments["Source"] as string;
             var ObjectFile = Driver.Arguments["Object"] as string;
             var cxDepFilePath = Driver.Arguments["DependFile"] as string;
             Depend.OnChanged(cxDepFilePath, (Depend depend) =>

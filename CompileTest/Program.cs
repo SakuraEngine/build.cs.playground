@@ -2,13 +2,13 @@
 using SB.Core;
 using System.Diagnostics;
 
-var LibSourceFile = "D:/SakuraEngine/SimpleCXX/lib.cpp";
-var ExeSourceFile = "D:/SakuraEngine/SimpleCXX/main.cpp";
-var PakSourceFile = "D:/SakuraEngine/SimpleCXX/package.cpp";
-BuildSystem.TempPath = Directory.CreateDirectory("D:/SakuraEngine/SimpleCXX/.sb").FullName;
-BuildSystem.BuildPath = Directory.CreateDirectory("D:/SakuraEngine/SimpleCXX/sbuild").FullName;
-BuildSystem.PackageTempPath = Directory.CreateDirectory("D:/SakuraEngine/SimpleCXX/.pkgs/.sb").FullName;
-BuildSystem.PackageBuildPath = Directory.CreateDirectory("D:/SakuraEngine/SimpleCXX/.pkgs/sbuild").FullName;
+var LibSourceFile = "D:/SakuraEngine/Simple CXX/lib.cpp";
+var ExeSourceFile = "D:/SakuraEngine/Simple CXX/main.cpp";
+var PakSourceFile = "D:/SakuraEngine/Simple CXX/package.cpp";
+BuildSystem.TempPath = Directory.CreateDirectory("D:/SakuraEngine/Simple CXX/.sb").FullName;
+BuildSystem.BuildPath = Directory.CreateDirectory("D:/SakuraEngine/Simple CXX/sbuild").FullName;
+BuildSystem.PackageTempPath = Directory.CreateDirectory("D:/SakuraEngine/Simple CXX/.pkgs/.sb").FullName;
+BuildSystem.PackageBuildPath = Directory.CreateDirectory("D:/SakuraEngine/Simple CXX/.pkgs/sbuild").FullName;
 VisualStudio VS = new VisualStudio(2022);
 
 Stopwatch sw = new();

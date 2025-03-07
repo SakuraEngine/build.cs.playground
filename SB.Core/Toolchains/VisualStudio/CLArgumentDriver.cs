@@ -42,18 +42,18 @@ namespace SB.Core
         public string RTTI(bool v) => v ? "/GR" : "/GR-";
         
         [TargetProperty] 
-        public string Source(string path) => VS.CheckFile(path, true) ? $"{path}" : throw new ArgumentException($"Source value {path} is not an existed absolute path!");
+        public string Source(string path) => VS.CheckFile(path, true) ? $"\"{path}\"" : throw new ArgumentException($"Source value {path} is not an existed absolute path!");
 
         public string Arch(Architecture arch) => archMap.TryGetValue(arch, out var r) ? r : throw new ArgumentException($"Invalid architecture \"{arch}\" for MSVC CL.exe!");
         static readonly Dictionary<Architecture, string> archMap = new Dictionary<Architecture, string> { { Architecture.X86, "" }, { Architecture.X64, "" }, { Architecture.ARM64, "" } };
 
-        public string Object(string path) => VS.CheckFile(path, false) ? $"/Fo{path}" : throw new ArgumentException($"Object value {path} is not a valid absolute path!");
+        public string Object(string path) => VS.CheckFile(path, false) ? $"/Fo\"{path}\"" : throw new ArgumentException($"Object value {path} is not a valid absolute path!");
 
         public string PDBMode(PDBMode mode) => (mode == SB.Core.PDBMode.Standalone) ? "/Zi" : (mode == SB.Core.PDBMode.Embed) ? "/Z7" : "";
 
-        public string PDB(string path) => VS.CheckFile(path, false) ? $"/Fd{path}" : throw new ArgumentException($"PDB value {path} is not a valid absolute path!");
+        public string PDB(string path) => VS.CheckFile(path, false) ? $"/Fd\"{path}\"" : throw new ArgumentException($"PDB value {path} is not a valid absolute path!");
 
-        public string SourceDependencies(string path) => VS.CheckFile(path, false) ? $"/sourceDependencies {path}" : throw new ArgumentException($"SourceDependencies value {path} is not a valid absolute path!");
+        public string SourceDependencies(string path) => VS.CheckFile(path, false) ? $"/sourceDependencies \"{path}\"" : throw new ArgumentException($"SourceDependencies value {path} is not a valid absolute path!");
 
         public Dictionary<ArgumentName, object?> Arguments { get; } = new Dictionary<ArgumentName, object?>();
         public HashSet<string> RawArguments { get; } = new HashSet<string> { "/c", "/nologo", "/cgthreads4", "/FC" };

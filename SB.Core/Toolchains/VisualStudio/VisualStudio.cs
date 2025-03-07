@@ -26,7 +26,7 @@ namespace SB.Core
             });
         }
 
-        public Version Version => ToolchainVersion;
+        public Version Version => new Version(VSVersion, 0);
         public ICompiler Compiler => CLCC;
         public ILinker Linker => LINK;
         public string BuildTempPath => Directory.CreateDirectory(Path.Combine(SourceLocation.BuildTempPath, this.Version.ToString())).FullName;
@@ -37,8 +37,8 @@ namespace SB.Core
             var matcher = new Matcher();
             if (FastFind)
             {
-                matcher.AddIncludePatterns(new[] { "./*/Tools/vsdevcmd/ext/vcvars.bat" });
-                matcher.AddIncludePatterns(new[] { "./*/Tools/vsdevcmd/core/winsdk.bat" });
+                matcher.AddIncludePatterns(new[] { "./**/Tools/vsdevcmd/ext/vcvars.bat" });
+                matcher.AddIncludePatterns(new[] { "./**/Tools/vsdevcmd/core/winsdk.bat" });
             }
             else
             {
@@ -71,7 +71,14 @@ namespace SB.Core
                 }
                 if (FoundVS)
                 {
-                    VSInstallDir = searchDirectory;
+                    // "*/Visual Studio/2022/*/**"
+                    var SomeBatPath = VCVarsAllBat ?? VCVarsBat;
+                    var PayInfo = SomeBatPath
+                        .Replace("\\", "/")
+                        .Replace(searchDirectory, "")
+                        .Split('/')[1];
+
+                    VSInstallDir = $"{searchDirectory}/{PayInfo}/";
                     break;
                 }
             }
@@ -97,12 +104,11 @@ namespace SB.Core
             };
             if (FastFind)
             {
-                var SetInclude = "set INCLUDE=%__VSCMD_VCVARS_INCLUDE%%__VSCMD_WINSDK_INCLUDE%%__VSCMD_NETFX_INCLUDE%%INCLUDE%";
                 cmd.StartInfo.Environment.Add("VSCMD_ARG_HOST_ARCH", archStringMap[HostArch]);
                 cmd.StartInfo.Environment.Add("VSCMD_ARG_TGT_ARCH", archStringMap[TargetArch]);
                 cmd.StartInfo.Environment.Add("VSCMD_ARG_APP_PLAT", "Desktop");
-                cmd.StartInfo.Environment.Add("VSINSTALLDIR", VSInstallDir);
-                cmd.StartInfo.Arguments = $"/c set > \"{oldEnvPath}\" && \"{VCVarsBat}\" && \"{WindowsSDKBat}\" && {SetInclude} && set > \"{newEnvPath}\"";
+                cmd.StartInfo.Environment.Add("VSINSTALLDIR", VSInstallDir.Replace("/", "\\"));
+                cmd.StartInfo.Arguments = $"/c set > \"{oldEnvPath}\" && \"{VCVarsBat}\" && \"{WindowsSDKBat}\" && set > \"{newEnvPath}\"";
             }
             else
             {
@@ -124,6 +130,12 @@ namespace SB.Core
             var vcPaths = VCEnvVariables["Path"].Split(';').ToHashSet();
             vcPaths.ExceptWith(oldEnv["Path"].Split(';').ToHashSet());
             VCEnvVariables["Path"] = string.Join(";", vcPaths);
+            // Preprocess: calculate include dir
+            var OriginalIncludes = VCEnvVariables.TryGetValue("INCLUDE", out var V0) ? V0 : "";
+            var VCVarsIncludes = VCEnvVariables.TryGetValue("__VSCMD_VCVARS_INCLUDE", out var V1) ? V1 : "";
+            var WindowsSDKIncludes = VCEnvVariables.TryGetValue("__VSCMD_WINSDK_INCLUDE", out var V2) ? V2 : "";
+            var NetFXIncludes = VCEnvVariables.TryGetValue("__VSCMD_NETFX_INCLUDE", out var V3) ? V3 : "";
+            VCEnvVariables["INCLUDE"] = VCVarsIncludes + WindowsSDKIncludes + NetFXIncludes + OriginalIncludes;
             // Enum all files and pick usable tools
             foreach (var path in vcPaths)
             {
@@ -136,12 +148,10 @@ namespace SB.Core
                 }
             }
 
-            ToolchainVersion = Version.Parse(VCEnvVariables["VSCMD_VER"]);
             CLCC = new CLCompiler(CLCCPath, VCEnvVariables);
             LINK = new LINK(LINKPath, VCEnvVariables);
         }
         
-        private Version ToolchainVersion;
         public readonly int VSVersion;
         public readonly Architecture HostArch;
         public readonly Architecture TargetArch;

@@ -20,7 +20,7 @@ namespace SB.Core
             var AllArgsDict = Driver.CalculateArguments();
             var AllArgsList = AllArgsDict.Values.SelectMany(x => x).ToList();
 
-            var InputFiles = AllArgsDict["Inputs"] as string[];
+            var InputFiles = Driver.Arguments["Inputs"] as ArgumentList<string>;
             var OutputFile = Driver.Arguments["Output"] as string;
             var cxDepFilePath = Driver.Arguments["DependFile"] as string;
             Depend.OnChanged(cxDepFilePath, (Depend depend) =>

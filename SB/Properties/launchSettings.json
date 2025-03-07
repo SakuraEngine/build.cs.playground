@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SB": {
+      "commandName": "Project",
+      "workingDirectory": "D:\\SakuraEngine\\Simple CXX"
+    }
+  }
+}
