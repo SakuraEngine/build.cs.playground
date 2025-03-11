@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Serilog;
+using System.Diagnostics;
 
 namespace SB.Core
 {
@@ -13,6 +14,8 @@ namespace SB.Core
 
             if (!File.Exists(ExePath))
                 throw new ArgumentException($"LINK: ExePath: {ExePath} is not an existed absolute path!");
+
+            Log.Information("LINK.exe version ... {MSVCVersion}", MSVCVersion);
         }
 
         public LinkResult Link(IArgumentDriver Driver)
@@ -31,6 +34,8 @@ namespace SB.Core
                     {
                         FileName = ExePath,
                         RedirectStandardInput = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
                         CreateNoWindow = false,
                         UseShellExecute = false,
                         Arguments = String.Join(" ", AllArgsList)
@@ -42,6 +47,14 @@ namespace SB.Core
                 }
                 linker.Start();
                 linker.WaitForExit();
+
+                // var ErrorInfo = linker.StandardError.ReadToEnd();
+                // FUCK YOU MICROSOFT THIS IS WEIRD
+                var OutputInfo = linker.StandardOutput.ReadToEnd();
+                if (OutputInfo.Contains("warning LNK"))
+                    Log.Warning("LINK.exe: {OutputInfo}", OutputInfo.Replace("\n", ""));
+                else if (OutputInfo.Contains("error LNK"))
+                    throw new TaskFatalError($"LINK.exe: {OutputInfo.Replace("\n", "")}");
 
                 depend.ExternalFiles.AddRange(OutputFile);
             }, new List<string>(InputFiles), AllArgsList);

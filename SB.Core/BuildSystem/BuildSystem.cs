@@ -1,5 +1,6 @@
 ﻿using SB;
 using SB.Core;
+using Serilog;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -49,6 +50,21 @@ namespace SB
 
         public static void RunBuild()
         {
+            try
+            {
+                Task.Run(() => RunBuildImpl(), TaskManager.RootCTS.Token).Wait(TaskManager.RootCTS.Token);
+            }
+            catch (OperationCanceledException OCE)
+            {
+                TaskManager.ForceQuit();
+
+                var Fatal = TaskManager.FatalError;
+                Log.Error("{Fatal}", Fatal);
+            }
+        }
+
+        public static void RunBuildImpl()
+        {
             Dictionary<string, Target> PackageTargets = new();
             foreach (var TargetKVP in AllTargets)
                 TargetKVP.Value.ResolvePackages(ref PackageTargets);
@@ -61,6 +77,31 @@ namespace SB
 
             Dictionary<TaskFingerprint, Task> EmitterTasks = new(TaskEmitters.Count * AllTargets.Count);
             var SortedTargets = AllTargets.Values.OrderBy(T => T.Dependencies.Count).ToList();
+
+            // Run Checks
+            uint FileTaskCount = 0;
+            uint AllTaskCount = 0;
+            foreach (var Target in SortedTargets)
+            {
+                foreach (var EmitterKVP in TaskEmitters)
+                {
+                    if (EmitterKVP.Value.EmitTargetTask)
+                        AllTaskCount += 1;
+
+                    foreach (var File in Target.AllFiles)
+                    {
+                        if (EmitterKVP.Value.EmitFileTask && EmitterKVP.Value.FileFilter(File))
+                        {
+                            FileTaskCount += 1;
+                            AllTaskCount += 1;
+                        }
+                    }
+                }
+            }
+
+            // Run Build
+            uint AllTaskCounter = 0;
+            uint FileTaskCounter = 0;
             foreach (var Target in SortedTargets)
             {
                 Target.CallAllActions(Target.BeforeBuildActions);
@@ -78,17 +119,28 @@ namespace SB
                     };
                     var EmitterTask = TaskManager.Run(Fingerprint, () =>
                     {
-                        List<Task> FileTasks = new (Target.AllFiles.Count);
-                        Emitter.AwaitExternalTargetDependencies(Target).Wait();
-                        Emitter.AwaitPerTargetDependencies(Target).Wait();
+                        List<Task<bool>> FileTasks = new (Target.AllFiles.Count);
+                        if (!Emitter.AwaitExternalTargetDependencies(Target).WaitAndGet())
+                            return false;
+                        if (!Emitter.AwaitPerTargetDependencies(Target).WaitAndGet())
+                            return false;
 
-                        var Result = Emitter.PerTargetTask(Target);
+                        if (Emitter.EmitTargetTask)
+                        {
+                            var TaskIndex = Interlocked.Increment(ref AllTaskCounter);
+                            var Percentage = 100.0f * TaskIndex / AllTaskCount;
+                            Log.Information("[{Percentage:00.0}%]: {TargetName} {EmitterName}", Percentage, Target.Name, EmitterName);
+                            Emitter.PerTargetTask(Target);
+                        }
+
                         foreach (var File in Target.AllFiles)
                         {
                             if (!Emitter.FileFilter(File))
                                 continue;
 
-                            Emitter.AwaitPerFileDependencies(Target, File).Wait();
+                            if (!Emitter.AwaitPerFileDependencies(Target, File).WaitAndGet())
+                                return false;
+
                             TaskFingerprint FileFingerprint = new TaskFingerprint
                             {
                                 TargetName = Target.Name,
@@ -97,23 +149,27 @@ namespace SB
                             };
                             var FileTask = TaskManager.Run(FileFingerprint, () =>
                             {
-                                return Emitter.PerFileTask(Target, File);
+                                var FileTaskIndex = Interlocked.Increment(ref FileTaskCounter);
+                                var TaskIndex = Interlocked.Increment(ref AllTaskCounter);
+                                var Percentage = 100.0f * TaskIndex / AllTaskCount;
+                                Log.Information("[{Percentage:00.0}%][{FileTaskIndex}/{FileTaskCount}]: {TargetName} {EmitterName}: {FileName}", Percentage, FileTaskIndex, FileTaskCount, Target.Name, EmitterName, File);
+                                Emitter.PerFileTask(Target, File);
+                                return true;
                             });
                             FileTasks.Add(FileTask);
                         }
-                        Task.WaitAll(FileTasks);
-                        return Result;
+                        TaskManager.WaitAll(FileTasks);
+                        return FileTasks.All(FileTask => (FileTask.Result == true));
                     });
-
                     EmitterTasks.Add(Fingerprint, EmitterTask);
                 }
             }
-
-            Task.WaitAll(EmitterTasks.Values);
+            TaskManager.WaitAll(EmitterTasks.Values);
         }
 
-        private static async Task AwaitExternalTargetDependencies(this TaskEmitter Emitter, Target Target)
+        private static async Task<bool> AwaitExternalTargetDependencies(this TaskEmitter Emitter, Target Target)
         {
+            bool Success = true;
             foreach (var DepTarget in Target.Dependencies)
             {
                 // check target is existed
@@ -128,13 +184,15 @@ namespace SB
                         File = "",
                         TaskName = DepEmitter.Key
                     };
-                    await TaskManager.AwaitFingerprint(Fingerprint);
+                    Success &= await TaskManager.AwaitFingerprint(Fingerprint);
                 }
             }
+            return Success;
         }
         
-        private static async Task AwaitPerTargetDependencies(this TaskEmitter Emitter, Target Target)
+        private static async Task<bool> AwaitPerTargetDependencies(this TaskEmitter Emitter, Target Target)
         {
+            bool Success = true;
             foreach (var Dependency in Emitter.Dependencies.Where(KVP => KVP.Value.Equals(DependencyModel.PerTarget)))
             {
                 TaskFingerprint Fingerprint = new TaskFingerprint
@@ -143,11 +201,14 @@ namespace SB
                     File = "",
                     TaskName = Dependency.Key
                 };
-                await TaskManager.AwaitFingerprint(Fingerprint);
+                Success &= await TaskManager.AwaitFingerprint(Fingerprint);
             }
+            return Success;
         }
-        private static async Task AwaitPerFileDependencies(this TaskEmitter Emitter, Target Target, string File)
+
+        private static async Task<bool> AwaitPerFileDependencies(this TaskEmitter Emitter, Target Target, string File)
         {
+            bool Success = true;
             foreach (var Dependency in Emitter.Dependencies.Where(KVP => KVP.Value.Equals(DependencyModel.PerFile)))
             {
                 TaskFingerprint Fingerprint = new TaskFingerprint
@@ -156,8 +217,15 @@ namespace SB
                     File = File,
                     TaskName = Dependency.Key
                 };
-                await TaskManager.AwaitFingerprint(Fingerprint);
+                Success &= await TaskManager.AwaitFingerprint(Fingerprint);
             }
+            return Success;
+        }
+
+        private static bool WaitAndGet(this Task<bool> T)
+        {
+            T.Wait();
+            return T.Result;
         }
 
         private static void CallAllActions(this Target Target, IList<Action<Target>> Actions)

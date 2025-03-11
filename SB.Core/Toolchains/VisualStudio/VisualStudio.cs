@@ -1,6 +1,7 @@
 using Microsoft.Extensions.FileSystemGlobbing;
 using System.Text;
 using System.Diagnostics;
+using Serilog;
 
 namespace SB.Core
 {
@@ -33,7 +34,8 @@ namespace SB.Core
 
         private void FindVCVars()
         {
-            Console.WriteLine($"Checking for Visual Studio {VSVersion} Toolchain...");
+            Log.Information("VisualStudio version ... {VSVersion}", VSVersion);
+
             var matcher = new Matcher();
             if (FastFind)
             {

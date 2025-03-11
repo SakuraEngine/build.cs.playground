@@ -9,25 +9,51 @@ namespace SB.Core
         public string TaskName { get; init; }
     }
 
+    public class TaskFatalError : Exception
+    {
+        public TaskFatalError(string what)
+            : base(what)
+        {
+
+        }
+    }
+
     public static class TaskManager
     {
-        public static async Task<TResult> Run<TResult>(TaskFingerprint Fingerprint, Func<TResult> Function)
+        public static Task<bool> Run(TaskFingerprint Fingerprint, Func<bool> Function)
         {
             if (AllTasks.TryGetValue(Fingerprint, out var _))
                 throw new ArgumentException($"Task with fingerprint {Fingerprint} already exists! Fingerprint should be unique to every task!");
 
-            var NewTask = Task.Run(Function);
+            var NewTask = Task.Run<bool>(
+                () => {
+                    if (StopAll)
+                        return false;
+                    return Function();
+                })
+                .ContinueWith(_ =>
+                {
+                    if (_.Exception?.InnerException is TaskFatalError fatal)
+                    {
+                        FatalError = fatal;
+                        RootCTS.Cancel();
+                        return false;
+                    }
+                    return _.Result;
+                },
+                TaskContinuationOptions.ExecuteSynchronously);
+
             if (!AllTasks.TryAdd(Fingerprint, NewTask))
             {
                 throw new ArgumentException($"Failed to add task with fingerprint {Fingerprint}! Are you adding same tasks in parallel?");
             }
 
-            return await NewTask;
+            return NewTask;
         }
 
-        public static async Task AwaitFingerprint(TaskFingerprint Fingerprint)
+        public static async Task<bool> AwaitFingerprint(TaskFingerprint Fingerprint)
         {
-            Task ToAwait = null;
+            Task<bool> ToAwait = null;
             const int YieldThreshold = 1000;
             int YieldTimes = 0;
             while (!AllTasks.TryGetValue(Fingerprint, out ToAwait))
@@ -37,9 +63,23 @@ namespace SB.Core
                 if (YieldTimes > YieldThreshold)
                     await Task.Delay(5);
             }
-            await ToAwait;
+            return await ToAwait;
         }
 
-        private static ConcurrentDictionary<TaskFingerprint, Task> AllTasks = new();
+        public static void WaitAll(IEnumerable<Task> tasks)
+        {
+            Task.WaitAll(tasks);
+        }
+
+        public static void ForceQuit()
+        {
+            StopAll = true;
+            WaitAll(AllTasks.Values);
+        }
+
+        internal static bool StopAll = false;
+        internal static ConcurrentDictionary<TaskFingerprint, Task<bool>> AllTasks = new();
+        internal static CancellationTokenSource RootCTS = new();
+        internal static TaskFatalError FatalError = null;
     }
 }

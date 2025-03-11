@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using Serilog;
+using System.Diagnostics;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -47,7 +49,8 @@ namespace SB.Core
                 // FUCK YOU MICROSOFT THIS IS WEIRD
                 var Output = compiler.StandardError.ReadToEnd();
                 Regex pattern = new Regex(@"\d+(\.\d+)+");
-                this.CLVersion = Version.Parse(pattern.Match(Output).Value);
+                CLVersion = Version.Parse(pattern.Match(Output).Value);
+                Log.Information("CL.exe version ... {CLVersion}", CLVersion);
                 return this.CLVersion;
             });
         }
@@ -68,6 +71,8 @@ namespace SB.Core
                     {
                         FileName = ExePath,
                         RedirectStandardInput = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
                         CreateNoWindow = false,
                         UseShellExecute = false,
                         Arguments = String.Join(" ", AllArgsList)
@@ -80,10 +85,20 @@ namespace SB.Core
                 compiler.Start();
                 compiler.WaitForExit();
 
-                var clDepFilePath = Driver.Arguments["SourceDependencies"] as string;
-                var clDeps = Json.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath));
+                // var ErrorInfo = compiler.StandardError.ReadToEnd();
+                // FUCK YOU MICROSOFT THIS IS WEIRD
+                var OutputInfo = compiler.StandardOutput.ReadToEnd();
+                if (OutputInfo.Contains("fatal error"))
+                {
+                    throw new TaskFatalError($"CL.exe: {OutputInfo.Replace("\n", "")}");
+                }
+                else
+                {
+                    var clDepFilePath = Driver.Arguments["SourceDependencies"] as string;
+                    var clDeps = Json.Deserialize<CLDependencies>(File.ReadAllText(clDepFilePath));
+                    depend.ExternalFiles.AddRange(clDeps.Data.Includes);
+                }
 
-                depend.ExternalFiles.AddRange(clDeps.Data.Includes);
                 depend.ExternalFiles.Add(ObjectFile);
             }, new List<string> { SourceFile }, AllArgsList);
 
