@@ -20,8 +20,15 @@ namespace SB.Core
 
         public LinkResult Link(IArgumentDriver Driver)
         {
-            var AllArgsDict = Driver.CalculateArguments();
-            var AllArgsList = AllArgsDict.Values.SelectMany(x => x).ToList();
+            var LinkerArgsDict = Driver.CalculateArguments();
+            var LinkerArgsList = LinkerArgsDict.Values.SelectMany(x => x).ToList();
+            var DependArgsList = LinkerArgsList.ToList();
+            // Version of LINE.exe may change
+            DependArgsList.Add($"ENV:VCToolsVersion={VCEnvVariables["VCToolsVersion"]}");
+            // LINE.exe links against Windows DLLs with syslinks so we need to add the version in deps
+            DependArgsList.Add($"ENV:WindowsSDKVersion={VCEnvVariables["WindowsSDKVersion"]}");
+            // LINE.exe links against system CRT libs implicitly so we need to add the version in deps
+            DependArgsList.Add($"ENV:UCRTVersion={VCEnvVariables["UCRTVersion"]}"); 
 
             var InputFiles = Driver.Arguments["Inputs"] as ArgumentList<string>;
             var OutputFile = Driver.Arguments["Output"] as string;
@@ -38,7 +45,7 @@ namespace SB.Core
                         RedirectStandardError = true,
                         CreateNoWindow = false,
                         UseShellExecute = false,
-                        Arguments = String.Join(" ", AllArgsList)
+                        Arguments = String.Join(" ", LinkerArgsList)
                     }
                 };
                 foreach (var kvp in VCEnvVariables)
@@ -57,11 +64,11 @@ namespace SB.Core
                     throw new TaskFatalError($"LINK.exe: {OutputInfo.Replace("\n", "")}");
 
                 depend.ExternalFiles.AddRange(OutputFile);
-            }, new List<string>(InputFiles), AllArgsList);
+            }, new List<string>(InputFiles), DependArgsList);
 
             return new LinkResult
             {
-                TargetFile = AllArgsDict["Output"][0],
+                TargetFile = LinkerArgsDict["Output"][0],
                 PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args as string : ""
             };
         }

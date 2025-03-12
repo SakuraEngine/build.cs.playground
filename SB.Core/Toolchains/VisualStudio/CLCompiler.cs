@@ -57,8 +57,13 @@ namespace SB.Core
 
         public CompileResult Compile(IArgumentDriver Driver)
         {
-            var AllArgsDict = Driver.CalculateArguments();
-            var AllArgsList = AllArgsDict.Values.SelectMany(x => x).ToList();
+            var CompilerArgsDict = Driver.CalculateArguments();
+            var CompilerArgsList = CompilerArgsDict.Values.SelectMany(x => x).ToList();
+            var DependArgsList = CompilerArgsList.ToList();
+            DependArgsList.Add($"ENV:VCToolsVersion={VCEnvVariables["VCToolsVersion"]}");
+            DependArgsList.Add($"ENV:WindowsSDKVersion={VCEnvVariables["WindowsSDKVersion"]}");
+            DependArgsList.Add($"ENV:WindowsSDKLibVersion={VCEnvVariables["WindowsSDKLibVersion"]}");
+            DependArgsList.Add($"ENV:UCRTVersion={VCEnvVariables["UCRTVersion"]}");
 
             var SourceFile = Driver.Arguments["Source"] as string;
             var ObjectFile = Driver.Arguments["Object"] as string;
@@ -75,7 +80,7 @@ namespace SB.Core
                         RedirectStandardError = true,
                         CreateNoWindow = false,
                         UseShellExecute = false,
-                        Arguments = String.Join(" ", AllArgsList)
+                        Arguments = String.Join(" ", CompilerArgsList)
                     }
                 };
                 foreach (var kvp in VCEnvVariables)
@@ -100,7 +105,7 @@ namespace SB.Core
                 }
 
                 depend.ExternalFiles.Add(ObjectFile);
-            }, new List<string> { SourceFile }, AllArgsList);
+            }, new List<string> { SourceFile }, DependArgsList);
 
             return new CompileResult
             {

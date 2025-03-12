@@ -39,7 +39,8 @@ namespace SB.Core
             var SortedFiles = Files?.ToList() ?? new(); SortedFiles.Sort();
             var SortedArgs = Args?.ToList() ?? new(); SortedArgs.Sort();
 
-            if (!CheckDepFile(DepFile, SortedFiles, SortedArgs))
+            var NeedRerun = option.Force || !CheckDepFile(DepFile, SortedFiles, SortedArgs);
+            if (NeedRerun)
             {
                 Depend NewDepend = new Depend
                 {
