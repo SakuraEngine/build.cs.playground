@@ -33,7 +33,7 @@ namespace SB.Core
             var InputFiles = Driver.Arguments["Inputs"] as ArgumentList<string>;
             var OutputFile = Driver.Arguments["Output"] as string;
             var cxDepFilePath = Driver.Arguments["DependFile"] as string;
-            Depend.OnChanged(cxDepFilePath, (Depend depend) =>
+            bool Changed = Depend.OnChanged(cxDepFilePath, (Depend depend) =>
             {
                 Process linker = new Process
                 {
@@ -61,7 +61,7 @@ namespace SB.Core
                 if (OutputInfo.Contains("warning LNK"))
                     Log.Warning("LINK.exe: {OutputInfo}", OutputInfo.Replace("\n", ""));
                 else if (OutputInfo.Contains("error LNK"))
-                    throw new TaskFatalError($"LINK.exe: {OutputInfo.Replace("\n", "")}");
+                    throw new TaskFatalError($"Link {OutputFile} failed with fatal error!", $"LINK.exe: {OutputInfo.Replace("\n", "")}");
 
                 depend.ExternalFiles.AddRange(OutputFile);
             }, new List<string>(InputFiles), DependArgsList);
@@ -69,7 +69,8 @@ namespace SB.Core
             return new LinkResult
             {
                 TargetFile = LinkerArgsDict["Output"][0],
-                PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args as string : ""
+                PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args as string : "",
+                IsRestored = !Changed
             };
         }
 

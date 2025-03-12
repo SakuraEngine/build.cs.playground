@@ -1,9 +1,10 @@
 ﻿namespace SB.Core
 {
-    public struct CompileResult
+    public struct CompileResult : IArtifact
     {
         public string ObjectFile { get; init; }
         public string PDBFile { get; init; }
+        public bool IsRestored { get; init; }
     }
 
     public interface ICompiler

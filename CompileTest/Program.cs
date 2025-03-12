@@ -29,8 +29,16 @@ SystemConsoleTheme ConsoleLogTheme = new SystemConsoleTheme(
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
+    // .Enrich.WithThreadId()
     // .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information, outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.ffff zzz} {Message:lj}{NewLine}{Exception}")
-    .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information, outputTemplate: "{Message:lj}{NewLine}{Exception}", theme: ConsoleLogTheme)
+    .WriteTo.Async(a => a.Logger(l => l
+        .Filter.ByIncludingOnly(e => e.Level == LogEventLevel.Information)
+        .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information, outputTemplate: "{Message:lj}{NewLine}{Exception}", theme: ConsoleLogTheme)
+    ))
+    .WriteTo.Async(a => a.Logger(l => l
+        .Filter.ByExcluding(e => e.Level == LogEventLevel.Information)
+        .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information, outputTemplate: "{Level:u}: {Message:lj}{NewLine}{Exception}", theme: ConsoleLogTheme)
+    ))
     .CreateLogger();
 
 var LibSourceFile = "D:/SakuraEngine/Simple CXX/lib.cpp";
@@ -41,6 +49,7 @@ BuildSystem.BuildPath = Directory.CreateDirectory("D:/SakuraEngine/Simple CXX/sb
 BuildSystem.PackageTempPath = Directory.CreateDirectory("D:/SakuraEngine/Simple CXX/.pkgs/.sb").FullName;
 BuildSystem.PackageBuildPath = Directory.CreateDirectory("D:/SakuraEngine/Simple CXX/.pkgs/sbuild").FullName;
 VisualStudio VS = new VisualStudio(2022);
+await VS.Initialize();
 
 Stopwatch sw = new();
 sw.Start();
@@ -105,7 +114,6 @@ for (int i = 0; i < 1000; i++)
     }
 }
 
-await VS.Initialize();
 BuildSystem.RunBuild();
 
 /*
@@ -127,6 +135,7 @@ BuildSystem.AddPackage("Zlib")
 */
 
 sw.Stop();
+Log.CloseAndFlush();
 Console.WriteLine($"Total: {sw.ElapsedMilliseconds}");
 Console.WriteLine($"Compile Total: {CppCompileEmitter.Time}");
 Console.WriteLine($"Link Total: {CppLinkEmitter.Time}");
@@ -141,7 +150,7 @@ public class CppCompileEmitter : TaskEmitter
 
     public override bool FileFilter(string File) => true;
 
-    public override void PerFileTask(Target Target, string SourceFile)
+    public override IArtifact PerFileTask(Target Target, string SourceFile)
     {
         Stopwatch sw = new();
         sw.Start();
@@ -157,9 +166,10 @@ public class CppCompileEmitter : TaskEmitter
             .AddArgument("SourceDependencies", SourceDependencies)
             .AddArgument("DependFile", DependFile);
         
-        Toolchain.Compiler.Compile(CLDriver);
+        var R = Toolchain.Compiler.Compile(CLDriver);
         sw.Stop();
         Time += (int)sw.ElapsedMilliseconds;
+        return R;
     }
 
     public static string GetObjectFilePath(Target Target, string SourceFile) => Path.Combine(Target.GetStorePath(BuildSystem.ObjsStore), BuildSystem.GetUniqueTempFileName(SourceFile, Target.Name, "obj"));
@@ -172,7 +182,7 @@ public class CppLinkEmitter : TaskEmitter
 {
     public CppLinkEmitter(IToolchain Toolchain) => this.Toolchain = Toolchain;
     public override bool EmitTargetTask => true;
-    public override void PerTargetTask(Target Target)
+    public override IArtifact PerTargetTask(Target Target)
     {
         Stopwatch sw = new();
         sw.Start();
@@ -191,10 +201,11 @@ public class CppLinkEmitter : TaskEmitter
             .AddArgument("Inputs", Inputs)
             .AddArgument("Output", LinkedFileName)
             .AddArgument("DependFile", DependFile);
-        Toolchain.Linker.Link(LINKDriver);
+        var R = Toolchain.Linker.Link(LINKDriver);
 
         sw.Stop();
         Time += (int)sw.ElapsedMilliseconds;
+        return R;
     }
 
     private static string GetLinkedFileName(Target Target)

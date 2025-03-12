@@ -68,7 +68,7 @@ namespace SB.Core
             var SourceFile = Driver.Arguments["Source"] as string;
             var ObjectFile = Driver.Arguments["Object"] as string;
             var cxDepFilePath = Driver.Arguments["DependFile"] as string;
-            Depend.OnChanged(cxDepFilePath, (Depend depend) =>
+            var Changed = Depend.OnChanged(cxDepFilePath, (Depend depend) =>
             {
                 Process compiler = new Process
                 {
@@ -95,7 +95,7 @@ namespace SB.Core
                 var OutputInfo = compiler.StandardOutput.ReadToEnd();
                 if (OutputInfo.Contains("fatal error"))
                 {
-                    throw new TaskFatalError($"CL.exe: {OutputInfo.Replace("\n", "")}");
+                    throw new TaskFatalError($"Compile {SourceFile} failed with fatal error!", $"CL.exe: {OutputInfo.Replace("\n", "")}");
                 }
                 else
                 {
@@ -110,7 +110,8 @@ namespace SB.Core
             return new CompileResult
             {
                 ObjectFile = ObjectFile,
-                PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args as string : ""
+                PDBFile = Driver.Arguments.TryGetValue("PDB", out var args) ? args as string : "",
+                IsRestored = !Changed
             };
         }
 

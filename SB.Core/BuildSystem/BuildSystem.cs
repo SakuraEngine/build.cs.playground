@@ -58,8 +58,20 @@ namespace SB
             {
                 TaskManager.ForceQuit();
 
-                var Fatal = TaskManager.FatalError;
-                Log.Error("{Fatal}", Fatal);
+                bool First = true;
+                TaskFatalError Fatal = null;
+                while (TaskManager.FatalErrors.TryDequeue(out Fatal))
+                {
+                    if (First)
+                    {
+                        Log.Error("{FatalTidy} Detail:\n{FatalMessage}", Fatal.Tidy, Fatal.Message);
+                        First = false;
+                    }
+                    else
+                    {
+                        Log.Error("{FatalTidy}", Fatal.Tidy);
+                    }
+                }
             }
         }
 
@@ -129,8 +141,18 @@ namespace SB
                         {
                             var TaskIndex = Interlocked.Increment(ref AllTaskCounter);
                             var Percentage = 100.0f * TaskIndex / AllTaskCount;
-                            Log.Information("[{Percentage:00.0}%]: {TargetName} {EmitterName}", Percentage, Target.Name, EmitterName);
-                            Emitter.PerTargetTask(Target);
+
+                            Stopwatch sw = new();
+                            sw.Start();
+                            var TargetTaskArtifact = Emitter.PerTargetTask(Target);
+                            sw.Stop();
+
+                            Log.Verbose("[{Percentage:00.0}%]: {TargetName} {EmitterName}", Percentage, Target.Name, EmitterName);
+                            if (!TargetTaskArtifact.IsRestored)
+                            {
+                                var CostTime = sw.ElapsedMilliseconds;
+                                Log.Information("[{Percentage:00.0}%]: {TargetName} {EmitterName}, cost {CostTime:00.00}s", Percentage, Target.Name, EmitterName, CostTime / 1000.0f);
+                            }
                         }
 
                         foreach (var File in Target.AllFiles)
@@ -152,8 +174,19 @@ namespace SB
                                 var FileTaskIndex = Interlocked.Increment(ref FileTaskCounter);
                                 var TaskIndex = Interlocked.Increment(ref AllTaskCounter);
                                 var Percentage = 100.0f * TaskIndex / AllTaskCount;
-                                Log.Information("[{Percentage:00.0}%][{FileTaskIndex}/{FileTaskCount}]: {TargetName} {EmitterName}: {FileName}", Percentage, FileTaskIndex, FileTaskCount, Target.Name, EmitterName, File);
-                                Emitter.PerFileTask(Target, File);
+
+                                Stopwatch sw = new();
+                                sw.Start();
+                                var FileTaskArtifact = Emitter.PerFileTask(Target, File);
+                                sw.Stop();
+
+                                Log.Verbose("[{Percentage:00.0}%][{FileTaskIndex}/{FileTaskCount}]: {TargetName} {EmitterName}: {FileName}", Percentage, FileTaskIndex, FileTaskCount, Target.Name, EmitterName, File);
+                                if (!FileTaskArtifact.IsRestored)
+                                {
+                                    var CostTime = sw.ElapsedMilliseconds;
+                                    Log.Information("[{Percentage:00.0}%][{FileTaskIndex}/{FileTaskCount}]: {TargetName} {EmitterName}: {FileName}, cost {CostTime:00.00}s", 
+                                        Percentage, FileTaskIndex, FileTaskCount, Target.Name, EmitterName, File, CostTime / 1000.0f);
+                                }
                                 return true;
                             });
                             FileTasks.Add(FileTask);

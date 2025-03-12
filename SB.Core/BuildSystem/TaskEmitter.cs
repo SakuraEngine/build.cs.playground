@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using SB.Core;
+using System.Collections.Generic;
 
 namespace SB
 {
@@ -18,11 +19,11 @@ namespace SB
         }
 
         public virtual bool EmitTargetTask => false;
-        public virtual void PerTargetTask(Target target) {}
+        public virtual IArtifact PerTargetTask(Target target) => null;
 
         public virtual bool EmitFileTask => false;
         public virtual bool FileFilter(string File) => false;
-        public virtual void PerFileTask(Target target, string File) { }
+        public virtual IArtifact PerFileTask(Target target, string File) => null;
 
         public string Name => SelfName;
 

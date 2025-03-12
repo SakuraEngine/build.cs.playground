@@ -27,7 +27,7 @@ namespace SB.Core
 
         public Depend() { }
 
-        public static void OnChanged(string DepFile, Action<Depend> func, IEnumerable<string> Files, IEnumerable<string> Args, Options? opt = null, [CallerFilePath] string CallerLoc = null)
+        public static bool OnChanged(string DepFile, Action<Depend> func, IEnumerable<string> Files, IEnumerable<string> Args, Options? opt = null, [CallerFilePath] string CallerLoc = null)
         {
             Options option = opt ?? new Options { Force = false, UseSHA = false };
             if (!Path.IsPathFullyQualified(DepFile))
@@ -49,7 +49,9 @@ namespace SB.Core
                 };
                 func(NewDepend);
                 UpdateDepFile(NewDepend, DepFile);
+                return true;
             }
+            return false;
         }
 
         private static bool CheckDepFile(string DepFile, List<string> SortedFiles, List<string> SortedArgs)

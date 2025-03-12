@@ -11,11 +11,12 @@ namespace SB.Core
 
     public class TaskFatalError : Exception
     {
-        public TaskFatalError(string what)
+        public TaskFatalError(string tidy, string what)
             : base(what)
         {
-
+            Tidy = tidy;
         }
+        public string Tidy { get; private set; }
     }
 
     public static class TaskManager
@@ -35,7 +36,7 @@ namespace SB.Core
                 {
                     if (_.Exception?.InnerException is TaskFatalError fatal)
                     {
-                        FatalError = fatal;
+                        FatalErrors.Enqueue(fatal);
                         RootCTS.Cancel();
                         return false;
                     }
@@ -80,6 +81,6 @@ namespace SB.Core
         internal static bool StopAll = false;
         internal static ConcurrentDictionary<TaskFingerprint, Task<bool>> AllTasks = new();
         internal static CancellationTokenSource RootCTS = new();
-        internal static TaskFatalError FatalError = null;
+        internal static ConcurrentQueue<TaskFatalError> FatalErrors = new();
     }
 }
